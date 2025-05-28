@@ -728,6 +728,82 @@
             padding-bottom: 20px;
             font-size: 0.85em;
         }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: rotate(90deg);
+        }
+
+        .clickable-image {
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .clickable-image:hover {
+            opacity: 0.9;
+        }
          .github-link {
             display: inline-flex;
             align-items: center;
@@ -1192,6 +1268,13 @@
 
                         <div class="setting-item">
                             <div class="checkbox-option">
+                                <input type="checkbox" id="normalizeCheckbox">
+                                <label for="normalizeCheckbox">🎨 明るさと彩度を正規化</label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="checkbox-option">
                                 <input type="checkbox" id="debugModeCheckbox">
                                 <label for="debugModeCheckbox">🐛 デバッグモード</label>
                             </div>
@@ -1292,8 +1375,17 @@
         <p>MediaPipe Face Detectorを使用しています。処理はすべてブラウザ内で完結します。</p>
     </footer>
 
+    <!-- Modal for full-size image display -->
+    <div id="imageModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <img id="modalImage" src="" alt="Full size image">
+        </div>
+    </div>
+
     <script type="module">
         import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/vision_bundle.mjs";
+        import { BrightnessNormalizer } from "./brightnessNormalizer.js";
 
         let faceDetector;
         const imageUpload = document.getElementById('imageUpload');
@@ -1326,6 +1418,7 @@
         const flipAspectRatioBtn = document.getElementById('flipAspectRatio');
 
         const debugModeCheckbox = document.getElementById('debugModeCheckbox');
+        const normalizeCheckbox = document.getElementById('normalizeCheckbox');
         const displayModeRadios = document.querySelectorAll('input[name="displayMode"]');
         const imageSizeRadios = document.querySelectorAll('input[name="imageSize"]');
         
@@ -1337,9 +1430,28 @@
         let currentAspectHeight = parseFloat(aspectHeightInput.value);
         let currentCropCenterType = 'box'; 
         let isDebugMode = debugModeCheckbox.checked;
+        let isNormalizeEnabled = normalizeCheckbox.checked;
         let currentDisplayMode = document.querySelector('input[name="displayMode"]:checked').value;
         let currentImageSize = document.querySelector('input[name="imageSize"]:checked').value;
+        const brightnessNormalizer = new BrightnessNormalizer();
+        let normalizedImagesMap = new Map(); // Store normalized images by filename
 
+        // Modal elements
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalClose = imageModal.querySelector('.modal-close');
+
+
+        // Modal event handlers
+        modalClose.addEventListener('click', () => {
+            imageModal.classList.remove('active');
+        });
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.classList.remove('active');
+            }
+        });
 
         // Drag and drop functionality
         uploadArea.addEventListener('dragover', (e) => {
@@ -1564,6 +1676,10 @@
             isDebugMode = event.target.checked;
             processedImagesTitle.textContent = isDebugMode ? "🐛 デバッグ表示一覧" : "✨ 加工後画像一覧";
         });
+
+        normalizeCheckbox.addEventListener('change', (event) => {
+            isNormalizeEnabled = event.target.checked;
+        });
         
         function handleFileSelect(files) {
             currentFiles = Array.from(files);
@@ -1636,15 +1752,22 @@
             croppedImagesData = [];
             noProcessedImagesMessage.classList.add('hidden');
             processedImageCounter = 0; // Reset counter before processing batch
+            brightnessNormalizer.clear(); // Clear previous normalization data
+            normalizedImagesMap.clear();
             
             processedImagesTitle.textContent = isDebugMode ? "🐛 デバッグ表示一覧" : "✨ 加工後画像一覧";
 
+            // First pass: process all images and collect data for normalization
+            const processedResults = [];
             for (const file of currentFiles) { 
                 const currentFileIndex = currentFiles.indexOf(file) + 1;
                 statusMessage.innerHTML = `<span class="loading"></span>処理中: ${file.name} (${currentFileIndex}/${currentFiles.length})`;
                 const aspectRatioNumber = currentAspectWidth / currentAspectHeight;
                 try {
-                    await processSingleImage(file, aspectRatioNumber, currentAspectWidth, currentAspectHeight, currentFaceHeightRatio, currentCropCenterType, isDebugMode);
+                    const result = await processSingleImage(file, aspectRatioNumber, currentAspectWidth, currentAspectHeight, currentFaceHeightRatio, currentCropCenterType, isDebugMode, true);
+                    if (result) {
+                        processedResults.push(result);
+                    }
                 } catch (err) {
                     console.error(`ファイル "${file.name}" の処理中にエラー: `, err);
                     const errorItemDiv = document.createElement('div'); 
@@ -1656,6 +1779,44 @@
                     errorMsgP.textContent = `エラー: ${file.name}`;
                     errorItemDiv.appendChild(errorMsgP);
                     processedImagesGrid.appendChild(errorItemDiv);
+                }
+            }
+
+            // Apply normalization if enabled
+            if (isNormalizeEnabled && processedResults.length > 0) {
+                statusMessage.innerHTML = '<span class="loading"></span>明るさと彩度を正規化中...';
+                try {
+                    // Add all cropped images to normalizer
+                    for (const result of processedResults) {
+                        if (result.croppedImageData) {
+                            brightnessNormalizer.addImage(result.croppedImageData);
+                        }
+                    }
+                    
+                    // Normalize all images
+                    const normalizationResult = brightnessNormalizer.normalize();
+                    
+                    // Store normalized images
+                    for (let i = 0; i < processedResults.length; i++) {
+                        if (normalizationResult.normalizedImages[i]) {
+                            processedResults[i].normalizedImageData = normalizationResult.normalizedImages[i];
+                        }
+                    }
+                    
+                    statusMessage.innerHTML = `<span class="loading"></span>正規化完了 (目標明度: ${Math.round(normalizationResult.targetBrightness)}, 目標彩度: ${Math.round(normalizationResult.targetSaturation)})`;
+                } catch (err) {
+                    console.error('正規化エラー:', err);
+                    statusMessage.innerHTML = '⚠️ 正規化に失敗しました。元の画像を使用します。';
+                }
+            }
+
+            // Display all processed images
+            processedImagesGrid.innerHTML = '';
+            croppedImagesData = [];
+            
+            for (const result of processedResults) {
+                if (result) {
+                    displayProcessedImage(result, isDebugMode, isNormalizeEnabled);
                 }
             }
             
@@ -1708,7 +1869,7 @@
             }
         });
 
-        async function processSingleImage(file, aspectRatioNumber, aspectWidthForStyle, aspectHeightForStyle, faceHeightTargetRatio, cropCenterType, debugMode) {
+        async function processSingleImage(file, aspectRatioNumber, aspectWidthForStyle, aspectHeightForStyle, faceHeightTargetRatio, cropCenterType, debugMode, returnData = false) {
             processedImageCounter++; // Increment for each image processed
             return new Promise((resolve, reject) => {
                 const originalImage = new Image();
@@ -1778,6 +1939,33 @@
                                 }
                             }
                             
+                            // If returnData is true, collect data instead of displaying
+                            if (returnData) {
+                                if (finalFaceData) {
+                                    const croppedCanvas = document.createElement('canvas');
+                                    cropImageToCanvas(originalImage, finalFaceData, croppedCanvas, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, faceDataRelativeToOriginal);
+                                    
+                                    const ctx = croppedCanvas.getContext('2d');
+                                    const imageData = ctx.getImageData(0, 0, croppedCanvas.width, croppedCanvas.height);
+                                    
+                                    resolve({
+                                        file: file,
+                                        originalImage: originalImage,
+                                        finalFaceData: finalFaceData,
+                                        faceDataRelativeToOriginal: faceDataRelativeToOriginal,
+                                        croppedCanvas: croppedCanvas,
+                                        croppedImageData: imageData,
+                                        debugInfo: debugInfo,
+                                        faceHeightTargetRatio: faceHeightTargetRatio,
+                                        aspectRatioNumber: aspectRatioNumber,
+                                        cropCenterType: cropCenterType
+                                    });
+                                } else {
+                                    resolve(null);
+                                }
+                                return;
+                            }
+                            
                             const itemDiv = document.createElement('div'); 
                             itemDiv.className = 'thumbnail-item';
 
@@ -1805,6 +1993,13 @@
                                     croppedImagesData.push({
                                         filename: finalFilename,
                                         dataURL: dataURL
+                                    });
+
+                                    // Add clickable class and click handler
+                                    croppedCanvas.className = 'clickable-image';
+                                    croppedCanvas.addEventListener('click', () => {
+                                        modalImage.src = dataURL;
+                                        imageModal.classList.add('active');
                                     });
 
                                     itemDiv.appendChild(croppedCanvas);
@@ -1868,6 +2063,84 @@
                 reader.onerror = () => reject(new Error(`FileReader error: ${file.name}`));
                 reader.readAsDataURL(file);
             });
+        }
+
+        function displayProcessedImage(result, debugMode, useNormalized) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'thumbnail-item';
+            
+            if (debugMode) {
+                const debugCanvas = document.createElement('canvas');
+                debugCanvas.className = 'debug-canvas';
+                itemDiv.appendChild(debugCanvas);
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'thumbnail-info';
+                const filenameP = document.createElement('p');
+                filenameP.className = 'filename';
+                filenameP.textContent = result.file.name;
+                infoDiv.appendChild(filenameP);
+                itemDiv.appendChild(infoDiv);
+                processedImagesGrid.appendChild(itemDiv);
+                drawDebugInfo(result.originalImage, debugCanvas, result.debugInfo);
+            } else {
+                const canvas = document.createElement('canvas');
+                canvas.width = result.croppedCanvas.width;
+                canvas.height = result.croppedCanvas.height;
+                const ctx = canvas.getContext('2d');
+                
+                // Use normalized image if available and enabled
+                if (useNormalized && result.normalizedImageData) {
+                    ctx.putImageData(result.normalizedImageData, 0, 0);
+                } else {
+                    ctx.drawImage(result.croppedCanvas, 0, 0);
+                }
+                
+                const dataURL = canvas.toDataURL('image/png');
+                const counter = croppedImagesData.length + 1;
+                const finalFilename = `${String(counter).padStart(3, '0')}_cropped.png`;
+                
+                croppedImagesData.push({
+                    filename: finalFilename,
+                    dataURL: dataURL
+                });
+                
+                canvas.className = 'clickable-image';
+                canvas.addEventListener('click', () => {
+                    modalImage.src = dataURL;
+                    imageModal.classList.add('active');
+                });
+                
+                itemDiv.appendChild(canvas);
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'thumbnail-info';
+                const filenameP = document.createElement('p');
+                filenameP.className = 'filename';
+                filenameP.textContent = finalFilename;
+                
+                const downloadButton = document.createElement('button');
+                downloadButton.className = 'download-icon-btn';
+                downloadButton.title = `Download ${finalFilename}`;
+                downloadButton.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 16.586l-4.293-4.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0l5-5a1 1 0 00-1.414-1.414L12 16.586zM12 3a1 1 0 00-1 1v10a1 1 0 102 0V4a1 1 0 00-1-1zM5 20a1 1 0 001 1h12a1 1 0 100-2H6a1 1 0 00-1 1z"/></svg>`;
+                
+                downloadButton.onclick = (e) => {
+                    e.stopPropagation();
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = finalFilename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+                infoDiv.appendChild(filenameP);
+                infoDiv.appendChild(downloadButton);
+                itemDiv.appendChild(infoDiv);
+                processedImagesGrid.appendChild(itemDiv);
+            }
+            
+            if (processedImagesGrid.children.length > 0) {
+                noProcessedImagesMessage.classList.add('hidden');
+            }
         }
         
         function getCropParameters(imageToGetPixelsFrom, faceData, targetFaceHeightRatio, targetAspectRatio, cropCenterType, coordsRelativeToThisRegionOnImage) {
