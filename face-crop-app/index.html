@@ -543,16 +543,15 @@
         .thumbnail-item canvas {
             width: 100%;
             height: auto; /* Maintain aspect ratio */
-            object-fit: cover; /* Ensure image covers the area */
             display: block;
             background-color: #e5e7eb; /* Placeholder bg */
         }
-         .thumbnail-grid.size-small .thumbnail-item img,
-        .thumbnail-grid.size-small .thumbnail-item canvas { min-height: 80px; }
-        .thumbnail-grid.size-medium .thumbnail-item img,
-        .thumbnail-grid.size-medium .thumbnail-item canvas { min-height: 120px; }
-        .thumbnail-grid.size-large .thumbnail-item img,
-        .thumbnail-grid.size-large .thumbnail-item canvas { min-height: 160px; }
+         .thumbnail-grid.card-mode.size-small .thumbnail-item img,
+        .thumbnail-grid.card-mode.size-small .thumbnail-item canvas { min-height: 80px; }
+        .thumbnail-grid.card-mode.size-medium .thumbnail-item img,
+        .thumbnail-grid.card-mode.size-medium .thumbnail-item canvas { min-height: 120px; }
+        .thumbnail-grid.card-mode.size-large .thumbnail-item img,
+        .thumbnail-grid.card-mode.size-large .thumbnail-item canvas { min-height: 160px; }
 
 
         .thumbnail-info {
@@ -636,6 +635,7 @@
         /* No-gap mode styles */
         .thumbnail-grid.no-gap-mode {
             gap: 2px; /* Minimal gap for no-gap */
+            grid-auto-flow: dense; /* Pack items tightly */
         }
          .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));}
         .thumbnail-grid.size-medium.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
@@ -644,6 +644,8 @@
         .thumbnail-grid.no-gap-mode .thumbnail-item {
             border-radius: 0;
             box-shadow: none;
+            overflow: hidden; /* Ensure content stays within bounds */
+            line-height: 0; /* Remove any text line spacing */
         }
 
         .thumbnail-grid.no-gap-mode .thumbnail-item:hover {
@@ -656,6 +658,15 @@
 
         .thumbnail-grid.no-gap-mode .thumbnail-info {
             display: none;
+        }
+        
+        /* Specific styles for no-gap mode to handle different aspect ratios */
+        .thumbnail-grid.no-gap-mode .thumbnail-item img,
+        .thumbnail-grid.no-gap-mode .thumbnail-item canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            vertical-align: top;
         }
 
         /* Card mode grid columns */
