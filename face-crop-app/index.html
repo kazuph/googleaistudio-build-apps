@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -29,6 +28,54 @@
         
         .page-title-container {
             padding: 10px 0 20px 0;
+            position: relative;
+        }
+
+        .header-icons {
+            position: absolute;
+            top: 10px;
+            right: 0;
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .header-icon-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-icon-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .header-icon-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .google-ai-icon {
+            width: 18px !important;
+            height: 18px !important;
+            font-weight: bold;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            color: currentColor;
         }
 
         h1 {
@@ -62,11 +109,6 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            position: sticky; /* Make sidebar sticky */
-            top: 20px; /* Sticky position from top */
-            max-height: calc(100vh - 40px); /* Max height to enable scrolling */
-            overflow-y: auto; /* Enable scrolling for sidebar content */
-            padding-right: 10px; /* For scrollbar */
         }
 
         .content-area {
@@ -145,8 +187,7 @@
             display: inline-block;
             margin: 8px 4px; /* Adjusted margin */
         }
-        
-        .btn.upload-btn-text { /* Specific class for the upload button */
+         .btn.upload-btn-text { /* Specific class for the upload button */
              margin: 0; /* Reset margin if part of upload area directly */
         }
 
@@ -161,8 +202,7 @@
             cursor: not-allowed;
             transform: none;
         }
-        
-        .settings-card-actions {
+         .settings-card-actions {
             margin-top: 20px; /* Add space above the process button within the card */
             display: flex;
             flex-direction: column;
@@ -329,8 +369,7 @@
             outline: none;
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
         }
-        
-        .aspect-ratio-inputs-container {
+         .aspect-ratio-inputs-container {
             display: flex;
             flex-direction: column; /* Stack AR inputs vertically */
             gap: 15px; /* Space between AR width and height sections */
@@ -435,8 +474,7 @@
             display: block;
             background-color: #e5e7eb; /* Placeholder bg */
         }
-        
-        .thumbnail-grid.size-small .thumbnail-item img,
+         .thumbnail-grid.size-small .thumbnail-item img,
         .thumbnail-grid.size-small .thumbnail-item canvas { min-height: 80px; }
         .thumbnail-grid.size-medium .thumbnail-item img,
         .thumbnail-grid.size-medium .thumbnail-item canvas { min-height: 120px; }
@@ -496,21 +534,18 @@
             margin-bottom: 10px;
             flex-wrap: wrap; /* Allow wrapping on small screens */
         }
-        
-        .display-control-group {
+         .display-control-group {
             display: flex;
             align-items: center;
             gap: 8px; /* Gap within a group */
         }
-        
-        .display-control-group .label-text {
+         .display-control-group .label-text {
             font-size: 0.9em;
             color: #4b5563;
             font-weight: 500;
             margin-bottom: 0; /* Override default label margin */
         }
-        
-        .display-control-group label { /* For radio button labels */
+         .display-control-group label { /* For radio button labels */
             display: flex;
             align-items: center;
             gap: 4px;
@@ -529,8 +564,7 @@
         .thumbnail-grid.no-gap-mode {
             gap: 2px; /* Minimal gap for no-gap */
         }
-        
-        .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));}
+         .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));}
         .thumbnail-grid.size-medium.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
         .thumbnail-grid.size-large.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
 
@@ -610,6 +644,32 @@
             padding-bottom: 20px;
             font-size: 0.85em;
         }
+         .github-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .github-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .github-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
         
         /* Responsive adjustments */
         @media (max-width: 991px) { /* Breakpoint for stacking sidebar */
@@ -618,10 +678,6 @@
             }
             .sidebar {
                 width: 100%;
-                position: static; /* Remove sticky positioning */
-                max-height: none; /* Remove max-height */
-                overflow-y: visible; /* Remove sidebar scroll */
-                padding-right: 0;
             }
             .content-area {
                 width: 100%;
@@ -637,6 +693,21 @@
             /* .action-buttons-container .btn removed as process button is now in settings card */
             .settings-card-actions .btn { font-size: 1em; padding: 12px 20px; }
 
+            .header-icons {
+                top: 5px;
+                right: 5px;
+                gap: 8px;
+            }
+
+            .header-icon-link {
+                width: 35px;
+                height: 35px;
+            }
+
+            .header-icon-link svg {
+                width: 18px;
+                height: 18px;
+            }
 
             .mode-option {
                 min-width: 100%; /* Full width for mode options */
@@ -653,6 +724,28 @@
 
             .section-title { font-size: 1.3em; }
             .display-controls-container { flex-direction: column; align-items: flex-start; }
+
+            /* Responsive styles for intro section */
+            .intro-title { font-size: 1.5em; }
+            .intro-description { font-size: 1em; }
+            
+            .cover-image-container {
+                margin: 20px 0;
+            }
+            
+            .cover-image {
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .features-list {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .start-instruction p {
+                font-size: 1em;
+            }
         }
         @media (max-width: 480px) {
             h1 { font-size: 1.8em; gap: 8px; }
@@ -661,10 +754,100 @@
             .btn { padding: 8px 15px; font-size: 0.9em; }
             .settings-card-actions .btn { font-size: 0.95em; padding: 10px 15px; }
 
+            .header-icons {
+                top: 0;
+                right: 0;
+                gap: 6px;
+            }
+
+            .header-icon-link {
+                width: 32px;
+                height: 32px;
+            }
+
+            .header-icon-link svg {
+                width: 16px;
+                height: 16px;
+            }
+
             .setting-item label, .setting-item .label-text { font-size: 0.85em; }
             .value-display { font-size: 0.9em; }
             input[type="number"] { width: 60px; font-size: 0.9em; }
             .radio-option label, .checkbox-option label { font-size: 0.85em; }
+        }
+
+        /* Introduction Section Styles */
+        .intro-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .intro-title {
+            font-size: 2em;
+            color: #374151;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .intro-description {
+            font-size: 1.1em;
+            color: #6b7280;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .cover-image-container {
+            margin: 40px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cover-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            background: #f8f9ff;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .feature-icon {
+            font-size: 1.5em;
+        }
+
+        .start-instruction {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            border-radius: 12px;
+            border: 2px dashed #667eea;
+        }
+
+        .start-instruction p {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+            margin: 0;
         }
 
     </style>
@@ -677,6 +860,21 @@
                 <span>AI Face Cropper</span>
             </h1>
             <p class="subtitle">MediaPipe Face Detectorで高精度な顔検出を実現</p>
+            <div class="header-icons">
+                <a href="https://github.com/kazuph/vibe-coding-apps/tree/main/face-crop-app" target="_blank" class="header-icon-link" title="GitHubリポジトリを見る">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+                <a href="https://aistudio.google.com/app/apps" target="_blank" class="header-icon-link" title="Google AI Studioを見る">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                </a>
+            </div>
         </div>
 
         <div class="main-layout">
@@ -800,7 +998,45 @@
             </aside>
 
             <main class="content-area">
-                <div id="processedImagesSection" class="card">
+                <!-- 説明セクション（画像処理前に表示） -->
+                <div id="introSection" class="card">
+                    <div class="intro-container">
+                        <h2 class="intro-title">✨ AI顔切り抜きアプリ</h2>
+                        <p class="intro-description">
+                            様々なサイズの写真から顔を自動検出し、統一されたサイズの顔写真に切り抜きます
+                        </p>
+                        
+                        <div class="cover-image-container">
+                            <img src="assets/cover.png" alt="AI顔切り抜きアプリの機能説明" class="cover-image" />
+                        </div>
+                        
+                        <div class="features-list">
+                            <div class="feature-item">
+                                <span class="feature-icon">🤖</span>
+                                <span>AI自動顔検出</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📐</span>
+                                <span>縦横比カスタマイズ</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">⚡</span>
+                                <span>ブラウザ内処理</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📦</span>
+                                <span>一括ダウンロード</span>
+                            </div>
+                        </div>
+                        
+                        <div class="start-instruction">
+                            <p>👈 左側から画像を選択して開始してください</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 処理結果セクション（画像処理後に表示） -->
+                <div id="processedImagesSection" class="card hidden">
                     <div class="section-header">
                         <h2 id="processedImagesTitle" class="section-title">✨ 加工後画像一覧</h2>
                         <button id="downloadAllButton" class="btn btn-download-all hidden">
@@ -862,6 +1098,10 @@
         const noProcessedImagesMessage = document.getElementById('noProcessedImagesMessage');
         const processedImagesTitle = document.getElementById('processedImagesTitle');
         const uploadArea = document.getElementById('uploadArea');
+
+        // Section elements for display toggling
+        const introSection = document.getElementById('introSection');
+        const processedImagesSection = document.getElementById('processedImagesSection');
 
         const preCropRatioContainer = document.getElementById('preCropRatioContainer');
         const preCropRatioSlider = document.getElementById('preCropRatioSlider');
@@ -948,6 +1188,17 @@
             processedImagesGrid.classList.add(`size-${currentImageSize}`);
         }
 
+        // Function to toggle between intro and results sections
+        function showIntroSection() {
+            introSection.classList.remove('hidden');
+            processedImagesSection.classList.add('hidden');
+        }
+
+        function showResultsSection() {
+            introSection.classList.add('hidden');
+            processedImagesSection.classList.remove('hidden');
+        }
+
 
         // Initial UI setup
         faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
@@ -1029,10 +1280,12 @@
             if (currentFiles.length > 0) {
                 selectImageButton.textContent = '画像を再選択';
                 statusMessage.innerHTML = `✅ ${currentFiles.length} 件の画像が選択されました。自動処理を開始します...`;
+                showResultsSection(); // Show results section when files are selected
                 triggerProcessing(); // Auto-process
             } else {
                 selectImageButton.textContent = '画像を選択';
                 statusMessage.innerHTML = '画像ファイルを選択してください';
+                showIntroSection(); // Show intro section when no files
                 noProcessedImagesMessage.classList.remove('hidden'); 
             }
         }
@@ -1539,7 +1792,9 @@
         // Initialize
         initializeMediaPipe();
         statusMessage.innerHTML = '画像ファイルを選択してください';
+        
+        // Show intro section initially
+        showIntroSection();
     </script>
 </body>
-</html><link rel="stylesheet" href="index.css">
-<script src="index.tsx" type="module"></script>
+</html>

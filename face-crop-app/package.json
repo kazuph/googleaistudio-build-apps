@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite build && vite preview",
     "deploy": "pnpm run build && wrangler deploy --name face-cropper --assets ./dist"
   },
   "devDependencies": {
