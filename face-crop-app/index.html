@@ -143,7 +143,7 @@
         .upload-area {
             border: 2px dashed #667eea;
             border-radius: 12px;
-            padding: 25px; /* Adjusted padding */
+            padding: 20px; /* 25pxから20pxに削減 */
             text-align: center;
             transition: all 0.3s;
             background: #f8f9ff;
@@ -162,9 +162,9 @@
         }
 
         .upload-icon {
-            font-size: 3em; /* Adjusted size */
+            font-size: 2.5em; /* 3emから2.5emに削減 */
             color: #667eea;
-            margin-bottom: 15px;
+            margin-bottom: 10px; /* 15pxから10pxに削減 */
             animation: pulse 2s infinite;
         }
 
@@ -371,18 +371,91 @@
         }
          .aspect-ratio-inputs-container {
             display: flex;
-            flex-direction: column; /* Stack AR inputs vertically */
-            gap: 15px; /* Space between AR width and height sections */
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
         }
 
-        .ar-preview-container {
-            text-align: center; 
-            margin: 15px 0;
+        .aspect-ratio-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
         }
-        .ar-preview-text {
-            font-weight: 600; 
-            color: #667eea; 
-            font-size: 1.1em;
+
+        .settings-header {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .settings-process-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+        }
+
+        .flip-btn {
+            background: #f8f9ff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: auto;
+            height: auto;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .flip-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .aspect-ratio-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .preset-btn {
+            background: #f8f9ff;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 0.7em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            text-align: center;
+            flex: 0 0 auto;
+        }
+
+        .preset-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
         }
 
         .crop-center-options {
@@ -688,7 +761,7 @@
         @media (max-width: 768px) {
             .container { padding: 10px; }
             .card { padding: 15px; }
-            .upload-area { padding: 20px; }
+            .upload-area { padding: 15px; } /* 20pxから15pxに削減 */
             .btn { padding: 10px 20px; font-size: 0.95em; }
             /* .action-buttons-container .btn removed as process button is now in settings card */
             .settings-card-actions .btn { font-size: 1em; padding: 12px 20px; }
@@ -711,6 +784,11 @@
 
             .mode-option {
                 min-width: 100%; /* Full width for mode options */
+            }
+
+            .preset-btn {
+                font-size: 0.8em;
+                padding: 6px 10px;
             }
             
             /* Adjust grid for processed images on smaller screens */
@@ -750,7 +828,7 @@
         @media (max-width: 480px) {
             h1 { font-size: 1.8em; gap: 8px; }
             .subtitle { font-size: 0.9em; }
-             .upload-icon { font-size: 2.5em; margin-bottom: 10px; }
+             .upload-icon { font-size: 2em; margin-bottom: 6px; } /* さらに削減 */
             .btn { padding: 8px 15px; font-size: 0.9em; }
             .settings-card-actions .btn { font-size: 0.95em; padding: 10px 15px; }
 
@@ -774,6 +852,16 @@
             .value-display { font-size: 0.9em; }
             input[type="number"] { width: 60px; font-size: 0.9em; }
             .radio-option label, .checkbox-option label { font-size: 0.85em; }
+
+            .preset-btn {
+                font-size: 0.75em;
+                padding: 5px 8px;
+                gap: 6px;
+            }
+
+            .aspect-ratio-presets {
+                gap: 6px;
+            }
         }
 
         /* Introduction Section Styles */
@@ -797,14 +885,15 @@
         }
 
         .cover-image-container {
-            margin: 40px 0;
+            margin: 30px 0;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
         .cover-image {
-            max-width: 100%;
+            max-width: 60%;
+            max-height: 300px;
             height: auto;
             border-radius: 12px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -850,6 +939,132 @@
             margin: 0;
         }
 
+        .flip-btn {
+            background: #f8f9ff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: auto;
+            height: auto;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .flip-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .aspect-ratio-presets {
+            gap: 6px;
+            justify-content: flex-start;
+        }
+
+        .preset-btn {
+            font-size: 0.8em;
+            padding: 6px 10px;
+            flex: 0 0 auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-process-btn {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .aspect-ratio-inputs-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .aspect-ratio-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .aspect-ratio-input-group .label-text {
+            font-size: 0.85em;
+            color: #4b5563;
+            font-weight: 500;
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+
+        .aspect-ratio-input-group .slider-container {
+            gap: 6px;
+        }
+
+        .aspect-ratio-input-group input[type="range"] {
+            width: 60px;
+        }
+
+        .aspect-ratio-input-group .value-display {
+            min-width: 25px;
+            font-size: 0.9em;
+        }
+
+        .aspect-ratio-input-group input[type="number"] {
+            width: 50px;
+            padding: 4px;
+            font-size: 0.85em;
+        }
+
+        .flip-btn {
+            background: #f8f9ff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: auto;
+            height: auto;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .flip-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .ar-preview-container {
+            text-align: center; 
+            margin: 10px 0;
+        }
+        .ar-preview-text {
+            font-weight: 600; 
+            color: #667eea; 
+            font-size: 1em;
+        }
     </style>
 </head>
 <body>
@@ -886,48 +1101,26 @@
                         <button class="btn upload-btn-text" id="selectImageButton" onclick="document.getElementById('imageUpload').click()">
                             画像を選択
                         </button>
-                        <p style="margin-top: 15px; color: #666; font-size: 0.85em;">
+                        <p style="margin-top: 10px; color: #666; font-size: 0.85em;">
                             複数の画像を一度に選択できます<br>
                             またはドラッグ＆ドロップ
                         </p>
                     </div>
                 </div>
 
-                <div id="statusMessage" class="status-message"></div>
+                <div id="statusMessage" class="status-message" style="display: none;"></div>
 
                 <div class="card">
-                    <h3 style="font-size: 1.3em; margin-bottom: 20px; color: #374151; text-align: center;">
-                        🎛️ 処理設定
-                    </h3>
-
-                    <div class="processing-mode-container">
-                        <div class="mode-option">
-                            <input type="radio" id="modeTwoPass" name="processingMode" value="twoPass" checked class="mode-radio">
-                            <label for="modeTwoPass" class="mode-label">
-                                <h4>🔬 精密処理</h4>
-                                <p>2段階処理で高精度検出</p>
-                            </label>
-                        </div>
-                        <div class="mode-option">
-                            <input type="radio" id="modeSinglePassPreCrop" name="processingMode" value="singlePassPreCrop" class="mode-radio">
-                            <label for="modeSinglePassPreCrop" class="mode-label">
-                                <h4>⚡ 標準処理</h4>
-                                <p>中央部事前切り抜き</p>
-                            </label>
-                        </div>
+                    <div class="settings-header">
+                        <h3 style="font-size: 1.3em; margin: 0; color: #374151;">
+                            🎛️ 処理設定
+                        </h3>
+                        <button id="processButton" class="btn btn-success settings-process-btn">
+                            <span id="processButtonText">🚀 再処理</span>
+                        </button>
                     </div>
 
                     <div class="setting-section">
-                        <div id="preCropRatioContainer" class="setting-item">
-                            <label for="preCropRatioSlider" class="label-text">
-                                📐 事前切り抜き範囲 (標準モード時)
-                            </label>
-                            <div class="slider-container">
-                                <input type="range" id="preCropRatioSlider" min="10" max="100" value="50" step="1">
-                                <span id="preCropRatioDisplay" class="value-display">50%</span>
-                            </div>
-                        </div>
-
                         <div class="setting-item">
                             <label for="faceHeightRatioSlider" class="label-text">
                                 🔍 顔の相対サイズ
@@ -938,34 +1131,38 @@
                             </div>
                         </div>
                         
-                        <div class="aspect-ratio-inputs-container">
-                            <div class="setting-item">
-                                <label for="aspectWidthSlider" class="label-text">
-                                    ↔️ 横幅比
-                                </label>
-                                <div class="slider-container">
-                                    <input type="range" id="aspectWidthSlider" min="1" max="16" value="3" step="1">
-                                    <span id="aspectWidthSliderDisplay" class="value-display">3</span>
-                                    <input type="number" id="aspectWidthInput" value="3" min="1" max="16">
+                        <div class="setting-item">
+                            <span class="label-text">📐 縦横比設定</span>
+                            <div class="aspect-ratio-inputs-container">
+                                <div class="aspect-ratio-input-group">
+                                    <span class="label-text">↔️ 横</span>
+                                    <div class="slider-container">
+                                        <input type="range" id="aspectWidthSlider" min="1" max="16" value="3" step="1">
+                                        <span id="aspectWidthSliderDisplay" class="value-display">3</span>
+                                        <input type="number" id="aspectWidthInput" value="3" min="1" max="16">
+                                        <button class="flip-btn" id="flipAspectRatio" title="縦横を入れ替え">
+                                            🔄 反転
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="aspect-ratio-input-group">
+                                    <span class="label-text">↕️ 縦</span>
+                                    <div class="slider-container">
+                                        <input type="range" id="aspectHeightSlider" min="1" max="16" value="4" step="1">
+                                        <span id="aspectHeightSliderDisplay" class="value-display">4</span>
+                                        <input type="number" id="aspectHeightInput" value="4" min="1" max="16">
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="setting-item">
-                                <label for="aspectHeightSlider" class="label-text">
-                                    ↕️ 高さ比
-                                </label>
-                                <div class="slider-container">
-                                    <input type="range" id="aspectHeightSlider" min="1" max="16" value="4" step="1">
-                                    <span id="aspectHeightSliderDisplay" class="value-display">4</span>
-                                    <input type="number" id="aspectHeightInput" value="4" min="1" max="16">
-                                </div>
+                            <div class="aspect-ratio-presets">
+                                <button class="preset-btn" data-ratio="1:1">1:1<br><small>正方形</small></button>
+                                <button class="preset-btn" data-ratio="3:4">3:4<br><small>証明写真</small></button>
+                                <button class="preset-btn" data-ratio="9:16">9:16<br><small>縦長</small></button>
+                                <button class="preset-btn" data-ratio="1:1.618">1:φ<br><small>黄金比</small></button>
+                                <button class="preset-btn" data-ratio="1:1.414">1:√2<br><small>白銀比</small></button>
                             </div>
-                        </div>
-
-                        <div class="ar-preview-container">
-                            <span class="ar-preview-text">
-                                縦横比: <span id="arPreview">(3:4)</span>
-                            </span>
                         </div>
 
                         <div class="setting-item">
@@ -989,9 +1186,9 @@
                             </div>
                         </div>
                     </div>
-                     <div class="settings-card-actions">
-                         <button id="processButton" class="btn btn-success" style="font-size: 1.1em; padding: 15px;">
-                            <span id="processButtonText">🚀 設定を適用して再処理</span>
+                     <div class="settings-card-actions" style="display: none;">
+                         <button id="processButtonDuplicate" class="btn btn-success" style="font-size: 1.1em; padding: 15px;">
+                            <span id="processButtonTextDuplicate">🚀 設定を適用して再処理</span>
                         </button>
                     </div>
                 </div>
@@ -1115,21 +1312,18 @@
         const aspectHeightSlider = document.getElementById('aspectHeightSlider');
         const aspectHeightSliderDisplay = document.getElementById('aspectHeightSliderDisplay');
         const aspectHeightInput = document.getElementById('aspectHeightInput');
-        const arPreview = document.getElementById('arPreview');
+        const flipAspectRatioBtn = document.getElementById('flipAspectRatio');
 
         const debugModeCheckbox = document.getElementById('debugModeCheckbox');
-        const processingModeRadios = document.querySelectorAll('input[name="processingMode"]');
         const displayModeRadios = document.querySelectorAll('input[name="displayMode"]');
         const imageSizeRadios = document.querySelectorAll('input[name="imageSize"]');
         
         let currentFiles = []; 
         let croppedImagesData = [];
         let processedImageCounter = 0;
-        let currentProcessingMode = document.querySelector('input[name="processingMode"]:checked').value; 
-        let currentPreCropRatio = parseInt(preCropRatioSlider.value, 10) / 100;
         let currentFaceHeightRatio = parseInt(faceHeightRatioSlider.value, 10) / 100;
-        let currentAspectWidth = parseInt(aspectWidthInput.value, 10);
-        let currentAspectHeight = parseInt(aspectHeightInput.value, 10);
+        let currentAspectWidth = parseFloat(aspectWidthInput.value);
+        let currentAspectHeight = parseFloat(aspectHeightInput.value);
         let currentCropCenterType = 'box'; 
         let isDebugMode = debugModeCheckbox.checked;
         let currentDisplayMode = document.querySelector('input[name="displayMode"]:checked').value;
@@ -1155,27 +1349,100 @@
         });
 
         function updateArPreview() {
-            const numW = parseInt(aspectWidthInput.value, 10);
-            const numH = parseInt(aspectHeightInput.value, 10);
+            const numW = parseFloat(aspectWidthInput.value);
+            const numH = parseFloat(aspectHeightInput.value);
             if (!isNaN(numW) && !isNaN(numH) && numW > 0 && numH > 0 && numW <=16 && numH <=16) {
                currentAspectWidth = numW;
                currentAspectHeight = numH;
                aspectWidthSlider.value = currentAspectWidth;
                aspectHeightSlider.value = currentAspectHeight;
-               aspectWidthSliderDisplay.textContent = currentAspectWidth;
-               aspectHeightSliderDisplay.textContent = currentAspectHeight;
-               arPreview.textContent = `(${currentAspectWidth}:${currentAspectHeight})`;
+               aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+               aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+               updatePresetButtonStates();
             } else { 
                aspectWidthInput.value = currentAspectWidth;
                aspectHeightInput.value = currentAspectHeight;
-               arPreview.textContent = `(${currentAspectWidth}:${currentAspectHeight})`;
             }
         }
+
+        function setAspectRatio(width, height) {
+            currentAspectWidth = width;
+            currentAspectHeight = height;
+            aspectWidthSlider.value = currentAspectWidth;
+            aspectHeightSlider.value = currentAspectHeight;
+            aspectWidthInput.value = currentAspectWidth;
+            aspectHeightInput.value = currentAspectHeight;
+            aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+            aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+            updatePresetButtonStates();
+        }
+
+        function updatePresetButtonStates() {
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            const currentRatio = currentAspectWidth / currentAspectHeight;
+            
+            presetButtons.forEach(btn => {
+                btn.classList.remove('active');
+                const ratioStr = btn.dataset.ratio;
+                let targetRatio;
+                
+                if (ratioStr.includes(':')) {
+                    const [w, h] = ratioStr.split(':').map(parseFloat);
+                    targetRatio = w / h;
+                } else {
+                    targetRatio = parseFloat(ratioStr);
+                }
+                
+                // 小数点以下の誤差を考慮して比較
+                if (Math.abs(currentRatio - targetRatio) < 0.01) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function handlePresetClick(ratioStr) {
+            let width, height;
+            
+            if (ratioStr.includes(':')) {
+                const [w, h] = ratioStr.split(':').map(parseFloat);
+                
+                // 黄金比と白銀比は小数のまま保持
+                if (ratioStr === '1.618:1') {
+                    width = 1.618;
+                    height = 1;
+                } else if (ratioStr === '1.414:1') {
+                    width = 1.414;
+                    height = 1;
+                } else if (ratioStr === '1:1.618') {
+                    width = 1;
+                    height = 1.618;
+                } else if (ratioStr === '1:1.414') {
+                    width = 1;
+                    height = 1.414;
+                } else if (w === Math.floor(w) && h === Math.floor(h)) {
+                    // 整数の場合はそのまま
+                    width = Math.floor(w);
+                    height = Math.floor(h);
+                } else {
+                    // その他の小数の場合は適切なスケールで整数化
+                    const scale = Math.max(1, Math.ceil(Math.max(w, h)));
+                    width = Math.round(w * scale);
+                    height = Math.round(h * scale);
+                    
+                    // 16以下に収める
+                    while (width > 16 || height > 16) {
+                        width = Math.floor(width / 2);
+                        height = Math.floor(height / 2);
+                    }
+                }
+            }
+            
+            setAspectRatio(width, height);
+        }
         
-        function togglePreCropSliderState() {
-            const isSinglePassPreCrop = currentProcessingMode === 'singlePassPreCrop';
-            preCropRatioSlider.disabled = !isSinglePassPreCrop;
-            preCropRatioContainer.classList.toggle('disabled-section', !isSinglePassPreCrop);
+        function flipAspectRatio() {
+            const tempWidth = currentAspectWidth;
+            setAspectRatio(currentAspectHeight, tempWidth);
         }
 
         function applyDisplayModeToGrid() {
@@ -1202,24 +1469,27 @@
 
         // Initial UI setup
         faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
-        preCropRatioDisplay.textContent = `${(currentPreCropRatio * 100).toFixed(0)}%`;
-        aspectWidthSliderDisplay.textContent = currentAspectWidth;
-        aspectHeightSliderDisplay.textContent = currentAspectHeight;
-        updateArPreview();
-        togglePreCropSliderState();
+        aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+        aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
         
         applyImageSizeToGrid();
         applyDisplayModeToGrid();
 
-
-        // Event Listeners
-        processingModeRadios.forEach(radio => {
-            radio.addEventListener('change', (event) => {
-                currentProcessingMode = event.target.value;
-                togglePreCropSliderState();
+        // Preset buttons event listeners
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handlePresetClick(btn.dataset.ratio);
             });
         });
 
+        // Flip aspect ratio button event listener
+        flipAspectRatioBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            flipAspectRatio();
+        });
+
+        // Event Listeners
         displayModeRadios.forEach(radio => {
             radio.addEventListener('change', (event) => {
                 currentDisplayMode = event.target.value;
@@ -1234,31 +1504,46 @@
             });
         });
 
-        preCropRatioSlider.addEventListener('input', (event) => { 
-            currentPreCropRatio = parseInt(event.target.value, 10) / 100;
-            preCropRatioDisplay.textContent = `${(currentPreCropRatio * 100).toFixed(0)}%`;
-        });
-
         faceHeightRatioSlider.addEventListener('input', (event) => { 
             currentFaceHeightRatio = parseInt(event.target.value, 10) / 100;
             faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
         });
 
         aspectWidthSlider.addEventListener('input', (event) => {
-            currentAspectWidth = parseInt(event.target.value, 10);
+            currentAspectWidth = parseFloat(event.target.value);
             aspectWidthInput.value = currentAspectWidth;
-            aspectWidthSliderDisplay.textContent = currentAspectWidth;
-            updateArPreview();
+            aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+            updatePresetButtonStates();
         });
-        aspectWidthInput.addEventListener('input', updateArPreview); 
+        aspectWidthInput.addEventListener('input', () => {
+            const numW = parseFloat(aspectWidthInput.value);
+            if (!isNaN(numW) && numW > 0 && numW <= 16) {
+                currentAspectWidth = numW;
+                aspectWidthSlider.value = currentAspectWidth;
+                aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+                updatePresetButtonStates();
+            } else {
+                aspectWidthInput.value = currentAspectWidth;
+            }
+        }); 
 
         aspectHeightSlider.addEventListener('input', (event) => {
-            currentAspectHeight = parseInt(event.target.value, 10);
+            currentAspectHeight = parseFloat(event.target.value);
             aspectHeightInput.value = currentAspectHeight;
-            aspectHeightSliderDisplay.textContent = currentAspectHeight;
-            updateArPreview();
+            aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+            updatePresetButtonStates();
         });
-        aspectHeightInput.addEventListener('input', updateArPreview);
+        aspectHeightInput.addEventListener('input', () => {
+            const numH = parseFloat(aspectHeightInput.value);
+            if (!isNaN(numH) && numH > 0 && numH <= 16) {
+                currentAspectHeight = numH;
+                aspectHeightSlider.value = currentAspectHeight;
+                aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+                updatePresetButtonStates();
+            } else {
+                aspectHeightInput.value = currentAspectHeight;
+            }
+        });
 
         document.querySelectorAll('input[name="cropCenter"]').forEach(radio => {
             radio.addEventListener('change', (event) => currentCropCenterType = event.target.value);
@@ -1348,7 +1633,7 @@
                 statusMessage.innerHTML = `<span class="loading"></span>処理中: ${file.name} (${currentFileIndex}/${currentFiles.length})`;
                 const aspectRatioNumber = currentAspectWidth / currentAspectHeight;
                 try {
-                    await processSingleImage(file, aspectRatioNumber, currentAspectWidth, currentAspectHeight, currentFaceHeightRatio, currentCropCenterType, isDebugMode, currentProcessingMode, currentPreCropRatio);
+                    await processSingleImage(file, aspectRatioNumber, currentAspectWidth, currentAspectHeight, currentFaceHeightRatio, currentCropCenterType, isDebugMode);
                 } catch (err) {
                     console.error(`ファイル "${file.name}" の処理中にエラー: `, err);
                     const errorItemDiv = document.createElement('div'); 
@@ -1412,7 +1697,7 @@
             }
         });
 
-        async function processSingleImage(file, aspectRatioNumber, aspectWidthForStyle, aspectHeightForStyle, faceHeightTargetRatio, cropCenterType, debugMode, processingMode, preCropAmount) {
+        async function processSingleImage(file, aspectRatioNumber, aspectWidthForStyle, aspectHeightForStyle, faceHeightTargetRatio, cropCenterType, debugMode) {
             processedImageCounter++; // Increment for each image processed
             return new Promise((resolve, reject) => {
                 const originalImage = new Image();
@@ -1424,35 +1709,14 @@
                             const origWidth = originalImage.naturalWidth;
                             const origHeight = originalImage.naturalHeight;
 
-                            let firstPassInput;
-                            let firstPassInputRegionOnOriginal;
+                            let firstPassInput = originalImage;
+                            let firstPassInputRegionOnOriginal = { x: 0, y: 0, width: origWidth, height: origHeight };
                             let debugInfo = {
                                 initialDetectionRegion: null,
                                 intermediateCropRegionOnOrig: null,
                                 finalDetections: null,
                                 finalDetectionsRelativeTo: null
                             };
-
-                            if (processingMode === 'singlePassPreCrop') {
-                                const preCropCanvas = document.createElement('canvas');
-                                const preCropCtx = preCropCanvas.getContext('2d');
-                                let preCropW = Math.max(1, Math.floor(origWidth * preCropAmount));
-                                let preCropH = Math.max(1, Math.floor(origHeight * preCropAmount));
-                                if (preCropAmount === 1.0) { preCropW = origWidth; preCropH = origHeight; }
-                                const preCropX = (origWidth - preCropW) / 2;
-                                const preCropY = (origHeight - preCropH) / 2;
-                                preCropCanvas.width = preCropW;
-                                preCropCanvas.height = preCropH;
-                                preCropCtx.drawImage(originalImage, preCropX, preCropY, preCropW, preCropH, 0, 0, preCropW, preCropH);
-                                
-                                firstPassInput = preCropCanvas;
-                                firstPassInputRegionOnOriginal = { x: preCropX, y: preCropY, width: preCropW, height: preCropH };
-                                debugInfo.initialDetectionRegion = firstPassInputRegionOnOriginal;
-                            } else { 
-                                firstPassInput = originalImage;
-                                firstPassInputRegionOnOriginal = { x: 0, y: 0, width: origWidth, height: origHeight };
-                                debugInfo.initialDetectionRegion = null; 
-                            }
                             
                             const detectionsResult1 = faceDetector.detect(firstPassInput);
                             const faceData1 = detectionsResult1.detections.length > 0 ? detectionsResult1.detections[0] : null;
@@ -1463,7 +1727,8 @@
                             debugInfo.finalDetections = detectionsResult1;
                             debugInfo.finalDetectionsRelativeTo = firstPassInputRegionOnOriginal;
 
-                            if (processingMode === 'twoPass' && faceData1) {
+                            // 常に二段階処理を実行
+                            if (faceData1) {
                                 const intermediateFaceHeightRatio = 0.3; 
                                 const intermediateCropParams = getCropParameters(
                                     originalImage, 
@@ -1798,3 +2063,4 @@
     </script>
 </body>
 </html>
+
