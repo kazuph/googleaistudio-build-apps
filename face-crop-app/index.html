@@ -1,0 +1,1545 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Face Cropper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        .page-title-container {
+            padding: 10px 0 20px 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start; /* Align items to the top */
+        }
+
+        .sidebar {
+            flex: 3;
+            min-width: 300px; /* Minimum width for sidebar */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: sticky; /* Make sidebar sticky */
+            top: 20px; /* Sticky position from top */
+            max-height: calc(100vh - 40px); /* Max height to enable scrolling */
+            overflow-y: auto; /* Enable scrolling for sidebar content */
+            padding-right: 10px; /* For scrollbar */
+        }
+
+        .content-area {
+            flex: 7;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0; /* Prevent content area from overflowing */
+        }
+
+
+        .card {
+            background: white;
+            border-radius: 16px; /* Slightly smaller radius */
+            padding: 20px; /* Adjusted padding */
+            margin-bottom: 0; /* Removed margin as gap handles it */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15); /* Softer shadow */
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 25px; /* Adjusted padding */
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9ff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f3ff;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #4c51bf;
+        }
+
+        .upload-icon {
+            font-size: 3em; /* Adjusted size */
+            color: #667eea;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px; /* Adjusted padding */
+            border-radius: 8px; /* Slightly smaller radius */
+            font-size: 1em; /* Adjusted size */
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            margin: 8px 4px; /* Adjusted margin */
+        }
+        
+        .btn.upload-btn-text { /* Specific class for the upload button */
+             margin: 0; /* Reset margin if part of upload area directly */
+        }
+
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Softer shadow */
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .settings-card-actions {
+            margin-top: 20px; /* Add space above the process button within the card */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .btn-download-all { /* Specific class for Download All button */
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 8px 15px; /* Smaller padding for header button */
+            font-size: 0.9em;
+            margin: 0; /* Reset margin */
+        }
+
+
+        .processing-mode-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Adjusted gap */
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mode-option {
+            flex: 1;
+            min-width: calc(50% - 10px); /* Two options per row */
+            max-width: 200px;
+        }
+
+        .mode-radio {
+            display: none;
+        }
+
+        .mode-label {
+            display: block;
+            padding: 15px; /* Adjusted padding */
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+            height: 100%; /* Ensure labels in a row have same height */
+        }
+
+        .mode-radio:checked + .mode-label {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border-color: #667eea;
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25);
+        }
+
+        .mode-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        .mode-label h4 {
+            font-size: 1.1em; /* Adjusted size */
+            margin-bottom: 6px;
+            color: #4b5563;
+        }
+
+        .mode-radio:checked + .mode-label h4 {
+            color: #667eea;
+        }
+        .mode-label p {
+             font-size: 0.8em; color: #6b7280;
+        }
+
+        .setting-section {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 0; /* Process button will be below this */
+        }
+
+        .setting-item {
+            margin-bottom: 20px; /* Adjusted margin */
+        }
+         .setting-item:last-child {
+            margin-bottom: 0; 
+        }
+
+
+        .setting-item label, .setting-item .label-text {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9em;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px; /* Adjusted gap */
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px; /* Adjusted height */
+            background: #e5e7eb;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; /* Adjusted size */
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        input[type="range"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        input[type="range"]:disabled::-webkit-slider-thumb {
+            background: #bdc3c7; /* Muted color for disabled thumb */
+        }
+        input[type="range"]:disabled::-moz-range-thumb {
+            background: #bdc3c7;
+        }
+
+
+        .value-display {
+            min-width: 50px; /* Adjusted width */
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1em;
+        }
+
+        input[type="number"] {
+            width: 70px; /* Adjusted width */
+            padding: 6px; /* Adjusted padding */
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        
+        .aspect-ratio-inputs-container {
+            display: flex;
+            flex-direction: column; /* Stack AR inputs vertically */
+            gap: 15px; /* Space between AR width and height sections */
+        }
+
+        .ar-preview-container {
+            text-align: center; 
+            margin: 15px 0;
+        }
+        .ar-preview-text {
+            font-weight: 600; 
+            color: #667eea; 
+            font-size: 1.1em;
+        }
+
+        .crop-center-options {
+            display: flex;
+            gap: 20px; /* Adjusted gap */
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px; /* Adjusted gap */
+        }
+         .radio-option label {
+            margin-bottom: 0;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #4b5563;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 16px; /* Adjusted size */
+            height: 16px;
+            accent-color: #667eea;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Adjusted gap */
+            margin-top: 8px;
+        }
+        .checkbox-option label {
+            margin-bottom: 0;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #4b5563;
+        }
+
+
+        .checkbox-option input[type="checkbox"] {
+            width: 18px; /* Adjusted size */
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 12px; /* Adjusted padding */
+            border-radius: 8px;
+            font-weight: 500;
+            min-height: 45px; /* Adjusted height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.95);
+            color: #4b5563;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            word-break: break-word;
+        }
+
+        .thumbnail-grid {
+            display: grid;
+            /* grid-template-columns will be set by JS based on size */
+            gap: 15px; /* Adjusted gap */
+            margin-top: 15px;
+        }
+
+        .thumbnail-item {
+            background: #f9fafb;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            display: flex; /* Use flex for better internal alignment */
+            flex-direction: column;
+        }
+
+        .thumbnail-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .thumbnail-item img,
+        .thumbnail-item canvas {
+            width: 100%;
+            height: auto; /* Maintain aspect ratio */
+            object-fit: cover; /* Ensure image covers the area */
+            display: block;
+            background-color: #e5e7eb; /* Placeholder bg */
+        }
+        
+        .thumbnail-grid.size-small .thumbnail-item img,
+        .thumbnail-grid.size-small .thumbnail-item canvas { min-height: 80px; }
+        .thumbnail-grid.size-medium .thumbnail-item img,
+        .thumbnail-grid.size-medium .thumbnail-item canvas { min-height: 120px; }
+        .thumbnail-grid.size-large .thumbnail-item img,
+        .thumbnail-grid.size-large .thumbnail-item canvas { min-height: 160px; }
+
+
+        .thumbnail-info {
+            padding: 8px; /* Adjusted padding */
+            text-align: center;
+            margin-top: auto; /* Push info to bottom if image is short */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filename {
+            font-size: 0.8em; /* Adjusted size */
+            color: #6b7280;
+            /* margin-bottom: 6px; */ /* Removed as flex handles spacing */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 30px); /* Make space for icon button */
+            text-align: left;
+        }
+
+        .download-icon-btn {
+            background: none;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #059669; /* Green color for icon */
+            transition: color 0.2s;
+        }
+        .download-icon-btn:hover {
+            color: #10b981; /* Lighter green on hover */
+        }
+        .download-icon-btn svg {
+            width: 20px; /* Icon size */
+            height: 20px;
+        }
+
+
+        .hidden {
+            display: none !important;
+        }
+
+        .display-controls-container {
+            display: flex;
+            justify-content: space-between; /* Align items to ends */
+            align-items: center;
+            gap: 15px; /* Gap between groups */
+            margin-bottom: 10px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+        
+        .display-control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Gap within a group */
+        }
+        
+        .display-control-group .label-text {
+            font-size: 0.9em;
+            color: #4b5563;
+            font-weight: 500;
+            margin-bottom: 0; /* Override default label margin */
+        }
+        
+        .display-control-group label { /* For radio button labels */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+         .display-control-group input[type="radio"] {
+            margin-right: 2px;
+         }
+
+
+        /* No-gap mode styles */
+        .thumbnail-grid.no-gap-mode {
+            gap: 2px; /* Minimal gap for no-gap */
+        }
+        
+        .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));}
+        .thumbnail-grid.size-medium.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+        .thumbnail-grid.size-large.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+
+        .thumbnail-grid.no-gap-mode .thumbnail-item {
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .thumbnail-grid.no-gap-mode .thumbnail-item:hover {
+            transform: none;
+            box-shadow: none;
+            /* Optional: outline on hover for no-gap mode */
+            /* outline: 2px solid #667eea; 
+            z-index: 10; */
+        }
+
+        .thumbnail-grid.no-gap-mode .thumbnail-info {
+            display: none;
+        }
+
+        /* Card mode grid columns */
+        .thumbnail-grid.size-small.card-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+        .thumbnail-grid.size-medium.card-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+        .thumbnail-grid.size-large.card-mode { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));}
+
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 1.5em; /* Adjusted size */
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px; /* Adjusted size */
+            height: 18px;
+            border: 2px solid #f3f3f3; /* Lighter border */
+            border-top: 2px solid #667eea; /* Accent color for spinner */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .debug-canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px dashed #ccc; /* Lighter border */
+            border-radius: 6px;
+        }
+
+        .disabled-section {
+            opacity: 0.6; /* Slightly more visible when disabled */
+            pointer-events: none;
+        }
+        .disabled-section .mode-label {
+             background: #f0f0f0; /* More distinct disabled bg */
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-top: 40px;
+            padding-bottom: 20px;
+            font-size: 0.85em;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 991px) { /* Breakpoint for stacking sidebar */
+            .main-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: static; /* Remove sticky positioning */
+                max-height: none; /* Remove max-height */
+                overflow-y: visible; /* Remove sidebar scroll */
+                padding-right: 0;
+            }
+            .content-area {
+                width: 100%;
+            }
+            h1 { font-size: 2em; }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .card { padding: 15px; }
+            .upload-area { padding: 20px; }
+            .btn { padding: 10px 20px; font-size: 0.95em; }
+            /* .action-buttons-container .btn removed as process button is now in settings card */
+            .settings-card-actions .btn { font-size: 1em; padding: 12px 20px; }
+
+
+            .mode-option {
+                min-width: 100%; /* Full width for mode options */
+            }
+            
+            /* Adjust grid for processed images on smaller screens */
+            .thumbnail-grid.size-small.card-mode { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));}
+            .thumbnail-grid.size-medium.card-mode { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));}
+            .thumbnail-grid.size-large.card-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+
+            .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));}
+            .thumbnail-grid.size-medium.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));}
+            .thumbnail-grid.size-large.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+
+            .section-title { font-size: 1.3em; }
+            .display-controls-container { flex-direction: column; align-items: flex-start; }
+        }
+        @media (max-width: 480px) {
+            h1 { font-size: 1.8em; gap: 8px; }
+            .subtitle { font-size: 0.9em; }
+             .upload-icon { font-size: 2.5em; margin-bottom: 10px; }
+            .btn { padding: 8px 15px; font-size: 0.9em; }
+            .settings-card-actions .btn { font-size: 0.95em; padding: 10px 15px; }
+
+            .setting-item label, .setting-item .label-text { font-size: 0.85em; }
+            .value-display { font-size: 0.9em; }
+            input[type="number"] { width: 60px; font-size: 0.9em; }
+            .radio-option label, .checkbox-option label { font-size: 0.85em; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-title-container">
+            <h1>
+                <span>🎯</span>
+                <span>AI Face Cropper</span>
+            </h1>
+            <p class="subtitle">MediaPipe Face Detectorで高精度な顔検出を実現</p>
+        </div>
+
+        <div class="main-layout">
+            <aside class="sidebar">
+                <div class="card">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📸</div>
+                        <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
+                        <button class="btn upload-btn-text" id="selectImageButton" onclick="document.getElementById('imageUpload').click()">
+                            画像を選択
+                        </button>
+                        <p style="margin-top: 15px; color: #666; font-size: 0.85em;">
+                            複数の画像を一度に選択できます<br>
+                            またはドラッグ＆ドロップ
+                        </p>
+                    </div>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+
+                <div class="card">
+                    <h3 style="font-size: 1.3em; margin-bottom: 20px; color: #374151; text-align: center;">
+                        🎛️ 処理設定
+                    </h3>
+
+                    <div class="processing-mode-container">
+                        <div class="mode-option">
+                            <input type="radio" id="modeTwoPass" name="processingMode" value="twoPass" checked class="mode-radio">
+                            <label for="modeTwoPass" class="mode-label">
+                                <h4>🔬 精密処理</h4>
+                                <p>2段階処理で高精度検出</p>
+                            </label>
+                        </div>
+                        <div class="mode-option">
+                            <input type="radio" id="modeSinglePassPreCrop" name="processingMode" value="singlePassPreCrop" class="mode-radio">
+                            <label for="modeSinglePassPreCrop" class="mode-label">
+                                <h4>⚡ 標準処理</h4>
+                                <p>中央部事前切り抜き</p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <div id="preCropRatioContainer" class="setting-item">
+                            <label for="preCropRatioSlider" class="label-text">
+                                📐 事前切り抜き範囲 (標準モード時)
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="preCropRatioSlider" min="10" max="100" value="50" step="1">
+                                <span id="preCropRatioDisplay" class="value-display">50%</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <label for="faceHeightRatioSlider" class="label-text">
+                                🔍 顔の相対サイズ
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="faceHeightRatioSlider" min="10" max="90" value="40" step="1">
+                                <span id="faceHeightRatioDisplay" class="value-display">40%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="aspect-ratio-inputs-container">
+                            <div class="setting-item">
+                                <label for="aspectWidthSlider" class="label-text">
+                                    ↔️ 横幅比
+                                </label>
+                                <div class="slider-container">
+                                    <input type="range" id="aspectWidthSlider" min="1" max="16" value="3" step="1">
+                                    <span id="aspectWidthSliderDisplay" class="value-display">3</span>
+                                    <input type="number" id="aspectWidthInput" value="3" min="1" max="16">
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <label for="aspectHeightSlider" class="label-text">
+                                    ↕️ 高さ比
+                                </label>
+                                <div class="slider-container">
+                                    <input type="range" id="aspectHeightSlider" min="1" max="16" value="4" step="1">
+                                    <span id="aspectHeightSliderDisplay" class="value-display">4</span>
+                                    <input type="number" id="aspectHeightInput" value="4" min="1" max="16">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ar-preview-container">
+                            <span class="ar-preview-text">
+                                縦横比: <span id="arPreview">(3:4)</span>
+                            </span>
+                        </div>
+
+                        <div class="setting-item">
+                            <span class="label-text">🎯 切り抜き基準点</span>
+                            <div class="crop-center-options">
+                                <div class="radio-option">
+                                    <input type="radio" id="centerBox" name="cropCenter" value="box" checked>
+                                    <label for="centerBox">顔の中心</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="centerEyes" name="cropCenter" value="eyes">
+                                    <label for="centerEyes">両目の中間</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="debugModeCheckbox">
+                                <label for="debugModeCheckbox">🐛 デバッグモード</label>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="settings-card-actions">
+                         <button id="processButton" class="btn btn-success" style="font-size: 1.1em; padding: 15px;">
+                            <span id="processButtonText">🚀 設定を適用して再処理</span>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <div id="processedImagesSection" class="card">
+                    <div class="section-header">
+                        <h2 id="processedImagesTitle" class="section-title">✨ 加工後画像一覧</h2>
+                        <button id="downloadAllButton" class="btn btn-download-all hidden">
+                            📥 ZIPで一括DL
+                        </button>
+                    </div>
+                     <div class="display-controls-container">
+                        <div class="display-control-group">
+                            <span class="label-text">表示モード:</span>
+                            <label>
+                                <input type="radio" name="displayMode" value="card">
+                                カード
+                            </label>
+                            <label>
+                                <input type="radio" name="displayMode" value="no-gap" checked>
+                                余白なし
+                            </label>
+                        </div>
+                        <div class="display-control-group">
+                            <span class="label-text">画像サイズ:</span>
+                            <label>
+                                <input type="radio" name="imageSize" value="small" checked>
+                                <span class="ml-1">小</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="imageSize" value="medium">
+                                <span class="ml-1">中</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="imageSize" value="large">
+                                <span class="ml-1">大</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="processedImagesGrid" class="thumbnail-grid"></div>
+                    <p id="noProcessedImagesMessage" class="text-center hidden" style="color: #9ca3af; padding: 20px;">
+                        加工された画像はありません
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <footer>
+        <p>MediaPipe Face Detectorを使用しています。処理はすべてブラウザ内で完結します。</p>
+    </footer>
+
+    <script type="module">
+        import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/vision_bundle.mjs";
+
+        let faceDetector;
+        const imageUpload = document.getElementById('imageUpload');
+        const selectImageButton = document.getElementById('selectImageButton');
+        const processButton = document.getElementById('processButton');
+        const processButtonText = document.getElementById('processButtonText');
+        const downloadAllButton = document.getElementById('downloadAllButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const processedImagesGrid = document.getElementById('processedImagesGrid');
+        const noProcessedImagesMessage = document.getElementById('noProcessedImagesMessage');
+        const processedImagesTitle = document.getElementById('processedImagesTitle');
+        const uploadArea = document.getElementById('uploadArea');
+
+        const preCropRatioContainer = document.getElementById('preCropRatioContainer');
+        const preCropRatioSlider = document.getElementById('preCropRatioSlider');
+        const preCropRatioDisplay = document.getElementById('preCropRatioDisplay');
+        const faceHeightRatioSlider = document.getElementById('faceHeightRatioSlider');
+        const faceHeightRatioDisplay = document.getElementById('faceHeightRatioDisplay');
+        
+        const aspectWidthSlider = document.getElementById('aspectWidthSlider');
+        const aspectWidthSliderDisplay = document.getElementById('aspectWidthSliderDisplay');
+        const aspectWidthInput = document.getElementById('aspectWidthInput');
+        const aspectHeightSlider = document.getElementById('aspectHeightSlider');
+        const aspectHeightSliderDisplay = document.getElementById('aspectHeightSliderDisplay');
+        const aspectHeightInput = document.getElementById('aspectHeightInput');
+        const arPreview = document.getElementById('arPreview');
+
+        const debugModeCheckbox = document.getElementById('debugModeCheckbox');
+        const processingModeRadios = document.querySelectorAll('input[name="processingMode"]');
+        const displayModeRadios = document.querySelectorAll('input[name="displayMode"]');
+        const imageSizeRadios = document.querySelectorAll('input[name="imageSize"]');
+        
+        let currentFiles = []; 
+        let croppedImagesData = [];
+        let processedImageCounter = 0;
+        let currentProcessingMode = document.querySelector('input[name="processingMode"]:checked').value; 
+        let currentPreCropRatio = parseInt(preCropRatioSlider.value, 10) / 100;
+        let currentFaceHeightRatio = parseInt(faceHeightRatioSlider.value, 10) / 100;
+        let currentAspectWidth = parseInt(aspectWidthInput.value, 10);
+        let currentAspectHeight = parseInt(aspectHeightInput.value, 10);
+        let currentCropCenterType = 'box'; 
+        let isDebugMode = debugModeCheckbox.checked;
+        let currentDisplayMode = document.querySelector('input[name="displayMode"]:checked').value;
+        let currentImageSize = document.querySelector('input[name="imageSize"]:checked').value;
+
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageUpload.files = files; 
+                handleFileSelect(files);   
+            }
+        });
+
+        function updateArPreview() {
+            const numW = parseInt(aspectWidthInput.value, 10);
+            const numH = parseInt(aspectHeightInput.value, 10);
+            if (!isNaN(numW) && !isNaN(numH) && numW > 0 && numH > 0 && numW <=16 && numH <=16) {
+               currentAspectWidth = numW;
+               currentAspectHeight = numH;
+               aspectWidthSlider.value = currentAspectWidth;
+               aspectHeightSlider.value = currentAspectHeight;
+               aspectWidthSliderDisplay.textContent = currentAspectWidth;
+               aspectHeightSliderDisplay.textContent = currentAspectHeight;
+               arPreview.textContent = `(${currentAspectWidth}:${currentAspectHeight})`;
+            } else { 
+               aspectWidthInput.value = currentAspectWidth;
+               aspectHeightInput.value = currentAspectHeight;
+               arPreview.textContent = `(${currentAspectWidth}:${currentAspectHeight})`;
+            }
+        }
+        
+        function togglePreCropSliderState() {
+            const isSinglePassPreCrop = currentProcessingMode === 'singlePassPreCrop';
+            preCropRatioSlider.disabled = !isSinglePassPreCrop;
+            preCropRatioContainer.classList.toggle('disabled-section', !isSinglePassPreCrop);
+        }
+
+        function applyDisplayModeToGrid() {
+            processedImagesGrid.classList.toggle('no-gap-mode', currentDisplayMode === 'no-gap');
+            processedImagesGrid.classList.toggle('card-mode', currentDisplayMode === 'card');
+        }
+
+        function applyImageSizeToGrid() {
+            processedImagesGrid.classList.remove('size-small', 'size-medium', 'size-large');
+            processedImagesGrid.classList.add(`size-${currentImageSize}`);
+        }
+
+
+        // Initial UI setup
+        faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
+        preCropRatioDisplay.textContent = `${(currentPreCropRatio * 100).toFixed(0)}%`;
+        aspectWidthSliderDisplay.textContent = currentAspectWidth;
+        aspectHeightSliderDisplay.textContent = currentAspectHeight;
+        updateArPreview();
+        togglePreCropSliderState();
+        
+        applyImageSizeToGrid();
+        applyDisplayModeToGrid();
+
+
+        // Event Listeners
+        processingModeRadios.forEach(radio => {
+            radio.addEventListener('change', (event) => {
+                currentProcessingMode = event.target.value;
+                togglePreCropSliderState();
+            });
+        });
+
+        displayModeRadios.forEach(radio => {
+            radio.addEventListener('change', (event) => {
+                currentDisplayMode = event.target.value;
+                applyDisplayModeToGrid();
+            });
+        });
+        
+        imageSizeRadios.forEach(radio => {
+            radio.addEventListener('change', (event) => {
+                currentImageSize = event.target.value;
+                applyImageSizeToGrid();
+            });
+        });
+
+        preCropRatioSlider.addEventListener('input', (event) => { 
+            currentPreCropRatio = parseInt(event.target.value, 10) / 100;
+            preCropRatioDisplay.textContent = `${(currentPreCropRatio * 100).toFixed(0)}%`;
+        });
+
+        faceHeightRatioSlider.addEventListener('input', (event) => { 
+            currentFaceHeightRatio = parseInt(event.target.value, 10) / 100;
+            faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
+        });
+
+        aspectWidthSlider.addEventListener('input', (event) => {
+            currentAspectWidth = parseInt(event.target.value, 10);
+            aspectWidthInput.value = currentAspectWidth;
+            aspectWidthSliderDisplay.textContent = currentAspectWidth;
+            updateArPreview();
+        });
+        aspectWidthInput.addEventListener('input', updateArPreview); 
+
+        aspectHeightSlider.addEventListener('input', (event) => {
+            currentAspectHeight = parseInt(event.target.value, 10);
+            aspectHeightInput.value = currentAspectHeight;
+            aspectHeightSliderDisplay.textContent = currentAspectHeight;
+            updateArPreview();
+        });
+        aspectHeightInput.addEventListener('input', updateArPreview);
+
+        document.querySelectorAll('input[name="cropCenter"]').forEach(radio => {
+            radio.addEventListener('change', (event) => currentCropCenterType = event.target.value);
+        });
+
+        debugModeCheckbox.addEventListener('change', (event) => {
+            isDebugMode = event.target.checked;
+            processedImagesTitle.textContent = isDebugMode ? "🐛 デバッグ表示一覧" : "✨ 加工後画像一覧";
+        });
+        
+        function handleFileSelect(files) {
+            currentFiles = Array.from(files);
+            processedImageCounter = 0; // Reset counter for new batch
+            processedImagesGrid.innerHTML = ''; 
+            croppedImagesData = [];
+            downloadAllButton.classList.add('hidden');
+            noProcessedImagesMessage.classList.add('hidden');
+            
+            if (currentFiles.length > 0) {
+                selectImageButton.textContent = '画像を再選択';
+                statusMessage.innerHTML = `✅ ${currentFiles.length} 件の画像が選択されました。自動処理を開始します...`;
+                triggerProcessing(); // Auto-process
+            } else {
+                selectImageButton.textContent = '画像を選択';
+                statusMessage.innerHTML = '画像ファイルを選択してください';
+                noProcessedImagesMessage.classList.remove('hidden'); 
+            }
+        }
+
+        imageUpload.addEventListener('change', (event) => {
+            handleFileSelect(event.target.files);
+        });
+
+        async function initializeMediaPipe() {
+            statusMessage.innerHTML = '<span class="loading"></span>顔検出モデルを初期化中...';
+            processButton.disabled = true;
+            try {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm"
+                );
+                faceDetector = await FaceDetector.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
+                        delegate: "GPU"
+                    },
+                    runningMode: "IMAGE",
+                    minDetectionConfidence: 0.5
+                });
+                statusMessage.innerHTML = '✅ 初期化完了';
+                processButton.disabled = false;
+            } catch (error) {
+                console.error("MediaPipe初期化エラー:", error);
+                statusMessage.innerHTML = `❌ 初期化エラー: ${error.message}`;
+            }
+        }
+
+        async function triggerProcessing() {
+            if (!faceDetector) { 
+                statusMessage.innerHTML = '⚠️ 顔検出機能が初期化されていません';
+                await initializeMediaPipe(); 
+                if (!faceDetector) {
+                     statusMessage.innerHTML = '❌ 初期化に失敗しました';
+                     return;
+                }
+            }
+            if (currentFiles.length === 0) { 
+                statusMessage.innerHTML = '⚠️ 処理する画像を選択してください';
+                return; 
+            }
+
+            statusMessage.innerHTML = '<span class="loading"></span>画像を処理中...';
+            processButtonText.innerHTML = '<span class="loading"></span>処理中...';
+            processButton.disabled = true;
+            downloadAllButton.disabled = true;
+            downloadAllButton.classList.add('hidden');
+            processedImagesGrid.innerHTML = ''; 
+            croppedImagesData = [];
+            noProcessedImagesMessage.classList.add('hidden');
+            processedImageCounter = 0; // Reset counter before processing batch
+            
+            processedImagesTitle.textContent = isDebugMode ? "🐛 デバッグ表示一覧" : "✨ 加工後画像一覧";
+
+            for (const file of currentFiles) { 
+                const currentFileIndex = currentFiles.indexOf(file) + 1;
+                statusMessage.innerHTML = `<span class="loading"></span>処理中: ${file.name} (${currentFileIndex}/${currentFiles.length})`;
+                const aspectRatioNumber = currentAspectWidth / currentAspectHeight;
+                try {
+                    await processSingleImage(file, aspectRatioNumber, currentAspectWidth, currentAspectHeight, currentFaceHeightRatio, currentCropCenterType, isDebugMode, currentProcessingMode, currentPreCropRatio);
+                } catch (err) {
+                    console.error(`ファイル "${file.name}" の処理中にエラー: `, err);
+                    const errorItemDiv = document.createElement('div'); 
+                    errorItemDiv.className = 'thumbnail-item';
+                    const errorMsgP = document.createElement('p');
+                    errorMsgP.style.color = '#ef4444';
+                    errorMsgP.style.padding = '20px';
+                    errorMsgP.style.textAlign = 'center';
+                    errorMsgP.textContent = `エラー: ${file.name}`;
+                    errorItemDiv.appendChild(errorMsgP);
+                    processedImagesGrid.appendChild(errorItemDiv);
+                }
+            }
+            
+            statusMessage.innerHTML = `✅ 処理完了: ${croppedImagesData.length}件の画像を加工しました`;
+            processButton.disabled = false;
+            processButtonText.innerHTML = '🚀 設定を適用して再処理';
+
+            if (croppedImagesData.length > 0 && !isDebugMode) {
+                downloadAllButton.classList.remove('hidden');
+                downloadAllButton.disabled = false;
+            }
+            if(processedImagesGrid.children.length === 0 && currentFiles.length > 0) { 
+                 noProcessedImagesMessage.textContent = isDebugMode ? '画像がありません' : '加工できる顔が見つかりませんでした';
+                 noProcessedImagesMessage.classList.remove('hidden');
+            }
+            applyImageSizeToGrid(); 
+            applyDisplayModeToGrid(); 
+        }
+        
+        processButton.addEventListener('click', triggerProcessing);
+
+
+        downloadAllButton.addEventListener('click', async () => {
+            if (croppedImagesData.length === 0) {
+                statusMessage.innerHTML = '⚠️ ダウンロードする画像がありません';
+                return;
+            }
+            statusMessage.innerHTML = '<span class="loading"></span>ZIPファイルを準備中...';
+            downloadAllButton.disabled = true;
+            const zip = new JSZip();
+            for (const imgData of croppedImagesData) {
+                const base64Data = imgData.dataURL.substring(imgData.dataURL.indexOf(',') + 1);
+                zip.file(imgData.filename, base64Data, { base64: true });
+            }
+            try {
+                const content = await zip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = "cropped_images.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                statusMessage.innerHTML = '✅ ZIPファイルのダウンロードを開始しました';
+            } catch (error) {
+                console.error("ZIP作成エラー:", error);
+                statusMessage.innerHTML = '❌ ZIPファイルの作成に失敗しました';
+            } finally {
+                 if (croppedImagesData.length > 0 && !isDebugMode) downloadAllButton.disabled = false;
+            }
+        });
+
+        async function processSingleImage(file, aspectRatioNumber, aspectWidthForStyle, aspectHeightForStyle, faceHeightTargetRatio, cropCenterType, debugMode, processingMode, preCropAmount) {
+            processedImageCounter++; // Increment for each image processed
+            return new Promise((resolve, reject) => {
+                const originalImage = new Image();
+                const reader = new FileReader();
+                reader.onload = (e_reader) => {
+                    originalImage.src = e_reader.target.result;
+                    originalImage.onload = async () => {
+                        try {
+                            const origWidth = originalImage.naturalWidth;
+                            const origHeight = originalImage.naturalHeight;
+
+                            let firstPassInput;
+                            let firstPassInputRegionOnOriginal;
+                            let debugInfo = {
+                                initialDetectionRegion: null,
+                                intermediateCropRegionOnOrig: null,
+                                finalDetections: null,
+                                finalDetectionsRelativeTo: null
+                            };
+
+                            if (processingMode === 'singlePassPreCrop') {
+                                const preCropCanvas = document.createElement('canvas');
+                                const preCropCtx = preCropCanvas.getContext('2d');
+                                let preCropW = Math.max(1, Math.floor(origWidth * preCropAmount));
+                                let preCropH = Math.max(1, Math.floor(origHeight * preCropAmount));
+                                if (preCropAmount === 1.0) { preCropW = origWidth; preCropH = origHeight; }
+                                const preCropX = (origWidth - preCropW) / 2;
+                                const preCropY = (origHeight - preCropH) / 2;
+                                preCropCanvas.width = preCropW;
+                                preCropCanvas.height = preCropH;
+                                preCropCtx.drawImage(originalImage, preCropX, preCropY, preCropW, preCropH, 0, 0, preCropW, preCropH);
+                                
+                                firstPassInput = preCropCanvas;
+                                firstPassInputRegionOnOriginal = { x: preCropX, y: preCropY, width: preCropW, height: preCropH };
+                                debugInfo.initialDetectionRegion = firstPassInputRegionOnOriginal;
+                            } else { 
+                                firstPassInput = originalImage;
+                                firstPassInputRegionOnOriginal = { x: 0, y: 0, width: origWidth, height: origHeight };
+                                debugInfo.initialDetectionRegion = null; 
+                            }
+                            
+                            const detectionsResult1 = faceDetector.detect(firstPassInput);
+                            const faceData1 = detectionsResult1.detections.length > 0 ? detectionsResult1.detections[0] : null;
+
+                            let finalFaceData = faceData1;
+                            let faceDataRelativeToOriginal = firstPassInputRegionOnOriginal; 
+                            
+                            debugInfo.finalDetections = detectionsResult1;
+                            debugInfo.finalDetectionsRelativeTo = firstPassInputRegionOnOriginal;
+
+                            if (processingMode === 'twoPass' && faceData1) {
+                                const intermediateFaceHeightRatio = 0.3; 
+                                const intermediateCropParams = getCropParameters(
+                                    originalImage, 
+                                    faceData1, 
+                                    intermediateFaceHeightRatio, 
+                                    aspectRatioNumber, 
+                                    cropCenterType,
+                                    firstPassInputRegionOnOriginal 
+                                );
+                                debugInfo.intermediateCropRegionOnOrig = intermediateCropParams;
+
+                                if (intermediateCropParams.finalCropW > 0 && intermediateCropParams.finalCropH > 0) {
+                                    const intermediateCanvas = document.createElement('canvas');
+                                    intermediateCanvas.width = intermediateCropParams.finalCropW;
+                                    intermediateCanvas.height = intermediateCropParams.finalCropH;
+                                    const intermediateCtx = intermediateCanvas.getContext('2d');
+                                    intermediateCtx.drawImage(originalImage, 
+                                        intermediateCropParams.cropSourceX, intermediateCropParams.cropSourceY, 
+                                        intermediateCropParams.finalCropW, intermediateCropParams.finalCropH,
+                                        0, 0, intermediateCanvas.width, intermediateCanvas.height);
+
+                                    const detectionsResult2 = faceDetector.detect(intermediateCanvas);
+                                    const faceData2 = detectionsResult2.detections.length > 0 ? detectionsResult2.detections[0] : null;
+                                    
+                                    if (faceData2) { 
+                                        finalFaceData = faceData2;
+                                        faceDataRelativeToOriginal = { 
+                                            x: intermediateCropParams.cropSourceX, 
+                                            y: intermediateCropParams.cropSourceY, 
+                                            width: intermediateCropParams.finalCropW, 
+                                            height: intermediateCropParams.finalCropH 
+                                        };
+                                        debugInfo.finalDetections = detectionsResult2; 
+                                        debugInfo.finalDetectionsRelativeTo = faceDataRelativeToOriginal;
+                                    }
+                                }
+                            }
+                            
+                            const itemDiv = document.createElement('div'); 
+                            itemDiv.className = 'thumbnail-item';
+
+                            if (debugMode) {
+                                const debugCanvas = document.createElement('canvas');
+                                debugCanvas.className = 'debug-canvas'; 
+                                itemDiv.appendChild(debugCanvas);
+                                const infoDiv = document.createElement('div'); 
+                                infoDiv.className = 'thumbnail-info';
+                                const filenameP = document.createElement('p');
+                                filenameP.className = 'filename';
+                                filenameP.textContent = file.name; // Show original name in debug
+                                infoDiv.appendChild(filenameP);
+                                itemDiv.appendChild(infoDiv); 
+                                processedImagesGrid.appendChild(itemDiv);
+                                drawDebugInfo(originalImage, debugCanvas, debugInfo); 
+                            } else { 
+                                if (finalFaceData) {
+                                    const croppedCanvas = document.createElement('canvas');
+                                    cropImageToCanvas(originalImage, finalFaceData, croppedCanvas, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, faceDataRelativeToOriginal); 
+                                    
+                                    const dataURL = croppedCanvas.toDataURL('image/png');
+                                    const finalFilename = `${String(processedImageCounter).padStart(3, '0')}_cropped.png`;
+
+                                    croppedImagesData.push({
+                                        filename: finalFilename,
+                                        dataURL: dataURL
+                                    });
+
+                                    itemDiv.appendChild(croppedCanvas);
+                                    
+                                    const infoDiv = document.createElement('div');
+                                    infoDiv.className = 'thumbnail-info';
+                                    const filenameP = document.createElement('p');
+                                    filenameP.className = 'filename';
+                                    filenameP.textContent = finalFilename;
+                                    
+                                    const downloadButton = document.createElement('button'); 
+                                    downloadButton.className = 'download-icon-btn';
+                                    downloadButton.title = `Download ${finalFilename}`;
+                                    downloadButton.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 16.586l-4.293-4.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0l5-5a1 1 0 00-1.414-1.414L12 16.586zM12 3a1 1 0 00-1 1v10a1 1 0 102 0V4a1 1 0 00-1-1zM5 20a1 1 0 001 1h12a1 1 0 100-2H6a1 1 0 00-1 1z"/></svg>`;
+
+                                    downloadButton.onclick = (e) => {
+                                        e.stopPropagation(); // Prevent card click if any
+                                        const link = document.createElement('a');
+                                        link.href = dataURL;
+                                        link.download = finalFilename;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    };
+                                    infoDiv.appendChild(filenameP);
+                                    infoDiv.appendChild(downloadButton);
+                                    itemDiv.appendChild(infoDiv);
+                                    processedImagesGrid.appendChild(itemDiv);
+                                } else { 
+                                    const noFaceMsg = document.createElement('p'); 
+                                    noFaceMsg.textContent = '顔検出不可';
+                                    noFaceMsg.style.color = '#ef4444';
+                                    noFaceMsg.style.padding = '40px 20px';
+                                    noFaceMsg.style.textAlign = 'center';
+                                    noFaceMsg.style.flexGrow = '1'; 
+                                    noFaceMsg.style.display = 'flex';
+                                    noFaceMsg.style.alignItems = 'center';
+                                    noFaceMsg.style.justifyContent = 'center';
+                                    itemDiv.appendChild(noFaceMsg);
+                                    const infoDiv = document.createElement('div');
+                                    infoDiv.className = 'thumbnail-info';
+                                    const filenameP = document.createElement('p');
+                                    filenameP.className = 'filename';
+                                    filenameP.textContent = file.name; // Original filename if no face
+                                    infoDiv.appendChild(filenameP);
+                                    itemDiv.appendChild(infoDiv);
+                                    processedImagesGrid.appendChild(itemDiv);
+                                }
+                            }
+                            if (processedImagesGrid.children.length > 0) { 
+                                noProcessedImagesMessage.classList.add('hidden');
+                            }
+                            resolve(); 
+                        } catch (error) { 
+                            console.error(`Error in img.onload for ${file.name}:`, error);
+                            reject(error); 
+                        }
+                    };
+                    originalImage.onerror = () => reject(new Error(`Image load error: ${file.name}`));
+                };
+                reader.onerror = () => reject(new Error(`FileReader error: ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function getCropParameters(imageToGetPixelsFrom, faceData, targetFaceHeightRatio, targetAspectRatio, cropCenterType, coordsRelativeToThisRegionOnImage) {
+            const mainImageWidth = imageToGetPixelsFrom.naturalWidth || imageToGetPixelsFrom.width;
+            const mainImageHeight = imageToGetPixelsFrom.naturalHeight || imageToGetPixelsFrom.height;
+            
+            const { boundingBox, keypoints } = faceData; 
+
+            const abs_fb_x = boundingBox.originX + coordsRelativeToThisRegionOnImage.x;
+            const abs_fb_y = boundingBox.originY + coordsRelativeToThisRegionOnImage.y;
+            const fb_w = boundingBox.width;   
+            const fb_h = boundingBox.height;
+
+            if (fb_w <= 0 || fb_h <= 0 || targetAspectRatio <= 0 || targetFaceHeightRatio <=0) {
+                 return { cropSourceX:0, cropSourceY:0, finalCropW:0, finalCropH:0 };
+            }
+
+            let fc_x_abs, fc_y_abs; 
+            if (cropCenterType === 'eyes' && keypoints && keypoints.length >= 2) {
+                const rightEye = keypoints[0]; 
+                const leftEye = keypoints[1];   
+                if (rightEye && typeof rightEye.x === 'number' && typeof rightEye.y === 'number' &&
+                    leftEye && typeof leftEye.x === 'number' && typeof leftEye.y === 'number') {
+                    
+                    const rightEyeX_in_region = rightEye.x * coordsRelativeToThisRegionOnImage.width;
+                    const rightEyeY_in_region = rightEye.y * coordsRelativeToThisRegionOnImage.height;
+                    const leftEyeX_in_region = leftEye.x * coordsRelativeToThisRegionOnImage.width;
+                    const leftEyeY_in_region = leftEye.y * coordsRelativeToThisRegionOnImage.height;
+
+                    const rightEyeX_abs = rightEyeX_in_region + coordsRelativeToThisRegionOnImage.x;
+                    const rightEyeY_abs = rightEyeY_in_region + coordsRelativeToThisRegionOnImage.y;
+                    const leftEyeX_abs = leftEyeX_in_region + coordsRelativeToThisRegionOnImage.x;
+                    const leftEyeY_abs = leftEyeY_in_region + coordsRelativeToThisRegionOnImage.y;
+                    
+                    fc_x_abs = (rightEyeX_abs + leftEyeX_abs) / 2; 
+                    fc_y_abs = (rightEyeY_abs + leftEyeY_abs) / 2;
+                } else { 
+                    fc_x_abs = abs_fb_x + fb_w / 2; 
+                    fc_y_abs = abs_fb_y + fb_h / 2; 
+                }
+            } else { 
+                fc_x_abs = abs_fb_x + fb_w / 2; 
+                fc_y_abs = abs_fb_y + fb_h / 2; 
+            }
+
+            let finalCropH = fb_h / targetFaceHeightRatio; 
+            let finalCropW = finalCropH * targetAspectRatio;
+            
+            if (finalCropW > mainImageWidth) { finalCropW = mainImageWidth; finalCropH = finalCropW / targetAspectRatio; }
+            if (finalCropH > mainImageHeight) { finalCropH = mainImageHeight; finalCropW = finalCropH * targetAspectRatio;
+                if (finalCropW > mainImageWidth) { 
+                    finalCropW = mainImageWidth; 
+                    finalCropH = finalCropW / targetAspectRatio; 
+                }
+            }
+            
+            finalCropW = Math.max(1, Math.floor(finalCropW));
+            finalCropH = Math.max(1, Math.floor(finalCropH));
+            if (finalCropW <= 0 || finalCropH <= 0) return { cropSourceX:0, cropSourceY:0, finalCropW:0, finalCropH:0 };
+
+            let cropSourceX = Math.floor(fc_x_abs - finalCropW / 2);
+            let cropSourceY = Math.floor(fc_y_abs - finalCropH / 2);
+
+            cropSourceX = Math.max(0, Math.min(cropSourceX, mainImageWidth - finalCropW));
+            cropSourceY = Math.max(0, Math.min(cropSourceY, mainImageHeight - finalCropH));
+            
+            const effectiveW = Math.max(1, Math.min(finalCropW, mainImageWidth - cropSourceX));
+            const effectiveH = Math.max(1, Math.min(finalCropH, mainImageHeight - cropSourceY));
+            
+            return { cropSourceX, cropSourceY, finalCropW: effectiveW, finalCropH: effectiveH };
+        }
+
+        function cropImageToCanvas(imageToDrawFrom, faceData, canvasElement, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, coordsRelativeToThisRegionOnImage) {
+            const { cropSourceX, cropSourceY, finalCropW, finalCropH } = getCropParameters(
+                imageToDrawFrom, faceData, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, coordsRelativeToThisRegionOnImage
+            );
+
+            if (finalCropW <= 0 || finalCropH <= 0 ) { 
+                const ctx = canvasElement.getContext('2d');
+                if (ctx) {
+                    const parentWidth = canvasElement.parentElement ? canvasElement.parentElement.clientWidth : 100; 
+                    const thumbWidth = Math.max(30, parentWidth); 
+                    canvasElement.width = thumbWidth;
+                    canvasElement.height = thumbWidth / (aspectRatioNumber || 1); 
+                    ctx.fillStyle = "#f0f0f0"; 
+                    ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                    ctx.fillStyle = "#cc0000"; 
+                    ctx.font = "bold 10px Arial"; 
+                    ctx.textAlign = "center"; 
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("描画不可", canvasElement.width / 2, canvasElement.height / 2);
+                }
+                return; 
+            }
+            
+            const bufferWidth = 600; 
+            canvasElement.width = bufferWidth;
+            canvasElement.height = Math.floor(bufferWidth / aspectRatioNumber); 
+            
+            const ctx = canvasElement.getContext('2d');
+            ctx.imageSmoothingEnabled = true; 
+            ctx.imageSmoothingQuality = "high";
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            ctx.drawImage(imageToDrawFrom, cropSourceX, cropSourceY, finalCropW, finalCropH, 0, 0, canvasElement.width, canvasElement.height);
+        }
+
+        function drawDebugInfo(originalImageElement, debugCanvasElement, debugData) {
+            const { initialDetectionRegion, intermediateCropRegionOnOrig, finalDetections, finalDetectionsRelativeTo } = debugData;
+
+            const imgWidth = originalImageElement.naturalWidth;
+            const imgHeight = originalImageElement.naturalHeight;
+            
+            const parentWidth = debugCanvasElement.parentElement ? debugCanvasElement.parentElement.clientWidth : imgWidth;
+            const displayMaxWidth = Math.max(150, parentWidth); 
+            const scale = Math.min(1, displayMaxWidth / imgWidth); 
+
+            debugCanvasElement.width = imgWidth * scale;
+            debugCanvasElement.height = imgHeight * scale;
+            
+            const ctx = debugCanvasElement.getContext('2d');
+            ctx.clearRect(0, 0, debugCanvasElement.width, debugCanvasElement.height);
+            ctx.drawImage(originalImageElement, 0, 0, debugCanvasElement.width, debugCanvasElement.height); 
+
+            if (initialDetectionRegion && 
+                (initialDetectionRegion.x > 0 || initialDetectionRegion.y > 0 || 
+                 initialDetectionRegion.width < imgWidth || initialDetectionRegion.height < imgHeight)) {
+                ctx.strokeStyle = 'rgba(0, 120, 255, 0.7)'; 
+                ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+                ctx.strokeRect(
+                    initialDetectionRegion.x * scale, 
+                    initialDetectionRegion.y * scale, 
+                    initialDetectionRegion.width * scale, 
+                    initialDetectionRegion.height * scale
+                );
+            }
+
+            if (intermediateCropRegionOnOrig) {
+                ctx.strokeStyle = 'rgba(0, 200, 100, 0.7)'; 
+                ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+                ctx.strokeRect(
+                    intermediateCropRegionOnOrig.cropSourceX * scale, 
+                    intermediateCropRegionOnOrig.cropSourceY * scale, 
+                    intermediateCropRegionOnOrig.finalCropW * scale, 
+                    intermediateCropRegionOnOrig.finalCropH * scale
+                );
+            }
+            
+            const keypointColors = ['#FF3B30', '#34C759', '#007AFF', '#FFCC00', '#AF52DE', '#5856D6']; 
+            const keypointLabels = ['右目', '左目', '鼻', '口', '右耳', '左耳']; 
+
+            if (finalDetections && finalDetections.detections.length > 0 && finalDetectionsRelativeTo) {
+                finalDetections.detections.forEach((detection, faceIndex) => {
+                    const bb = detection.boundingBox; 
+                    
+                    const abs_bb_x_on_orig = bb.originX + finalDetectionsRelativeTo.x;
+                    const abs_bb_y_on_orig = bb.originY + finalDetectionsRelativeTo.y;
+                    
+                    const scaled_x = abs_bb_x_on_orig * scale;
+                    const scaled_y = abs_bb_y_on_orig * scale;
+                    const scaled_w = bb.width * scale;   
+                    const scaled_h = bb.height * scale;  
+
+                    ctx.strokeStyle = `hsl(${faceIndex * 50}, 85%, 50%)`; 
+                    ctx.lineWidth = Math.max(1.5, 2.5 * scale); 
+                    ctx.strokeRect(scaled_x, scaled_y, scaled_w, scaled_h);
+                    
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.font = `bold ${Math.max(9, 12 * scale)}px Arial`; 
+                    const textY = scaled_y - 6 * scale > 0 ? scaled_y - 6 * scale : 12 * scale;
+                    ctx.fillText(`Face ${faceIndex + 1}`, scaled_x, textY);
+
+                    if (detection.keypoints) {
+                        detection.keypoints.forEach((kp, kpIndex) => {
+                            const kx_in_region = kp.x * finalDetectionsRelativeTo.width;
+                            const ky_in_region = kp.y * finalDetectionsRelativeTo.height;
+
+                            const kx_abs_on_orig = kx_in_region + finalDetectionsRelativeTo.x;
+                            const ky_abs_on_orig = ky_in_region + finalDetectionsRelativeTo.y;
+                            
+                            const kx_scaled = kx_abs_on_orig * scale;
+                            const ky_scaled = ky_abs_on_orig * scale;
+
+                            ctx.beginPath();
+                            ctx.fillStyle = keypointColors[kpIndex % keypointColors.length];
+                            ctx.arc(kx_scaled, ky_scaled, Math.max(2, 4 * scale), 0, 2 * Math.PI); 
+                            ctx.fill();
+                            if (keypointLabels[kpIndex]) { 
+                               ctx.fillStyle = '#000'; 
+                               ctx.font = `${Math.max(8, 10 * scale)}px Arial`;
+                               ctx.fillText(keypointLabels[kpIndex], kx_scaled + 6 * scale, ky_scaled - 6 * scale);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Initialize
+        initializeMediaPipe();
+        statusMessage.innerHTML = '画像ファイルを選択してください';
+    </script>
+</body>
+</html><link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>

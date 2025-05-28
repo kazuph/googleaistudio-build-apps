@@ -1,0 +1,5 @@
+{
+  "name": "顔切り出しアプリ",
+  "description": "複数枚の顔写真を正規化する",
+  "requestFramePermissions": []
+}
