@@ -4,6 +4,8 @@
 
 Face Detect Clipperは、アップロードされた画像から顔を検出し、指定された設定に基づいて顔を中心に画像を切り抜くウェブアプリケーションです。すべての処理はユーザーのブラウザ内で完結し、サーバーに画像データが送信されることはありません。
 
+**🎯 ライブデモ**: https://face-cropper.kazuph.workers.dev/
+
 **デプロイメント:**
 
 このアプリケーションは、静的サイトとしてCloudflare Workers (またはCloudflare Pages) を使用して簡単にデプロイできるように設計されています。必要なファイル（HTML、CSS、JavaScript、およびMediaPipeモデル関連ファイル）をCloudflareのプラットフォームにアップロードすることで公開できます。
