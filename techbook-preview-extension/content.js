@@ -307,7 +307,7 @@ class TechbookPreview {
       ${bookData.title ? `<h3>${this.escapeHtml(bookData.title)}</h3>` : ''}
       ${bookData.author ? `<div class="author">著者: ${this.escapeHtml(bookData.author)}</div>` : ''}
       ${bookData.price ? `<div class="price">${this.escapeHtml(bookData.price)}</div>` : ''}
-      ${bookData.description ? `<div class="description">${this.escapeHtml(bookData.description)}</div>` : ''}
+      ${bookData.description ? `<div class="description">${this.parseMarkdown(bookData.description)}</div>` : ''}
       ${bookData.tags.length > 0 ? `
         <div class="tags">
           ${bookData.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
@@ -331,6 +331,47 @@ class TechbookPreview {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  parseMarkdown(text) {
+    if (!text) return '';
+    
+    // HTMLエスケープ
+    let html = this.escapeHtml(text);
+    
+    // 改行を保持
+    html = html.replace(/\n/g, '<br>');
+    
+    // 基本的なマークダウン記法を解釈
+    // 太字 **text** または __text__
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    
+    // イタリック *text* または _text_
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/(?<!_)_([^_]+)_(?!_)/g, '<em>$1</em>');
+    
+    // インラインコード `code`
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+    // リンク [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // 見出し（行頭のみ）
+    html = html.replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, content) => {
+      const level = hashes.length;
+      return `<h${level + 3}>${content}</h${level + 3}>`;
+    });
+    
+    // リスト項目
+    html = html.replace(/^[*+-]\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    
+    // 番号付きリスト
+    html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)(?!.*<ul>)/s, '<ol>$1</ol>');
+    
+    return html;
   }
 }
 

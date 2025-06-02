@@ -110,6 +110,52 @@
   color: #1a3d27;
   margin-bottom: 12px;
   font-size: 14px;
+  line-height: 1.6;
+}
+
+/* マークダウン要素のスタイリング */
+.techbook-preview-popup .description strong {
+  font-weight: 700;
+  color: rgb(76, 175, 80);
+}
+
+.techbook-preview-popup .description em {
+  font-style: italic;
+}
+
+.techbook-preview-popup .description code {
+  background: rgba(76, 175, 80, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+}
+
+.techbook-preview-popup .description a {
+  color: rgb(76, 175, 80);
+  text-decoration: underline;
+}
+
+.techbook-preview-popup .description a:hover {
+  color: rgba(76, 175, 80, 0.8);
+}
+
+.techbook-preview-popup .description h4,
+.techbook-preview-popup .description h5,
+.techbook-preview-popup .description h6 {
+  margin: 8px 0 4px 0;
+  font-weight: 600;
+  color: #1a3d27;
+}
+
+.techbook-preview-popup .description ul,
+.techbook-preview-popup .description ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.techbook-preview-popup .description li {
+  margin: 4px 0;
 }
 
 .techbook-preview-popup .price {
