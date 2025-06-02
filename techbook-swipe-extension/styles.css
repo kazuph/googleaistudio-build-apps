@@ -13,6 +13,13 @@
   100% { transform: scale(1); }
 }
 
+.techbook-liked {
+  transition: border 0.3s ease-in-out !important;
+  border: 3px solid #FF69B4 !important;
+  border-radius: 4px !important;
+  box-sizing: border-box !important;
+}
+
 .techbook-swipe-container {
   position: fixed;
   top: 0;

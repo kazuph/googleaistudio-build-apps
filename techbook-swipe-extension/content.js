@@ -65,12 +65,22 @@ class TechbookSwipe {
             // ハートアイコンを追加する要素を決定
             const bookCard = link.closest('div[tabindex="0"]') || link.closest('li, div');
             if (bookCard && !bookCard.querySelector('.techbook-heart-icon')) {
+              // ハートアイコンを追加
               const heartIcon = document.createElement('span');
               heartIcon.className = 'techbook-heart-icon';
               heartIcon.innerHTML = '❤️';
               heartIcon.style.cssText = 'position: absolute; top: 10px; right: 10px; font-size: 24px; z-index: 10;';
               bookCard.style.position = 'relative';
               bookCard.appendChild(heartIcon);
+              
+              // ピンクの枠を追加
+              const bookImage = bookCard.querySelector('button, div[style*="box-shadow"]');
+              if (bookImage && !bookImage.classList.contains('techbook-liked')) {
+                bookImage.classList.add('techbook-liked');
+                bookImage.style.border = '3px solid #FF69B4';
+                bookImage.style.borderRadius = '4px';
+                bookImage.style.boxSizing = 'border-box';
+              }
             }
           }
         }
