@@ -4,6 +4,8 @@ class TechbookPreview {
     this.currentHoveredElement = null;
     this.hideTimeout = null;
     this.cache = new Map();
+    this.isOverBook = false;
+    this.isOverPopup = false;
     this.init();
   }
 
@@ -22,53 +24,47 @@ class TechbookPreview {
     // 技術書典の本詳細ページ (/product/) へのリンクを検出
     const bookSelector = 'a[href*="/product/"]';
 
-    // 本のカードまたはプレビューにホバー中かチェック
-    document.addEventListener('mouseover', (e) => {
+    // mouseenterとmouseleaveを使用（バブリングしない）
+    document.addEventListener('mouseenter', (e) => {
       const bookLink = e.target.closest(bookSelector);
       if (bookLink && this.isBookLink(bookLink)) {
+        this.isOverBook = true;
         this.handleMouseEnter(bookLink, e);
-        return;
       }
+    }, true);
 
-      // プレビューポップアップ内の場合
-      if (e.target.closest('.techbook-preview-popup')) {
-        this.clearHideTimeout();
-        return;
-      }
-    });
-
-    // ホバーが外れた時の処理
-    document.addEventListener('mouseout', (e) => {
-      // 本のカードから外れた場合
+    document.addEventListener('mouseleave', (e) => {
       const bookLink = e.target.closest(bookSelector);
       if (bookLink && this.currentHoveredElement === bookLink) {
-        // マウスがプレビューに移動していない場合のみ非表示タイマーを開始
-        setTimeout(() => {
-          if (!this.isHoveringBookOrPreview()) {
-            this.scheduleHide();
-          }
-        }, 10);
-        return;
+        this.isOverBook = false;
+        this.checkAndHide();
       }
+    }, true);
 
-      // プレビューから外れた場合
-      if (e.target.closest('.techbook-preview-popup')) {
-        setTimeout(() => {
-          if (!this.isHoveringBookOrPreview()) {
-            this.scheduleHide();
-          }
-        }, 10);
-        return;
-      }
+    // プレビューポップアップ専用のイベントリスナーを追加
+    this.setupPopupEventListeners();
+  }
+
+  setupPopupEventListeners() {
+    // ポップアップが作成された後に直接イベントリスナーを追加
+    this.popup.addEventListener('mouseenter', () => {
+      this.isOverPopup = true;
+      this.clearHideTimeout();
+    });
+
+    this.popup.addEventListener('mouseleave', () => {
+      this.isOverPopup = false;
+      this.checkAndHide();
     });
   }
 
-  isHoveringBookOrPreview() {
-    const hoveredElement = document.querySelector(':hover');
-    if (!hoveredElement) return false;
-    
-    return hoveredElement.closest('a[href*="/product/"]') === this.currentHoveredElement ||
-           hoveredElement.closest('.techbook-preview-popup') !== null;
+  checkAndHide() {
+    this.clearHideTimeout();
+    this.hideTimeout = setTimeout(() => {
+      if (!this.isOverBook && !this.isOverPopup) {
+        this.hidePopup();
+      }
+    }, 300);
   }
 
   clearHideTimeout() {
@@ -79,10 +75,9 @@ class TechbookPreview {
   }
 
   scheduleHide() {
-    this.clearHideTimeout();
-    this.hideTimeout = setTimeout(() => {
-      this.hidePopup();
-    }, 150);
+    // checkAndHideに統合されたため、この関数は不要になりましたが、
+    // 互換性のために残しておきます
+    this.checkAndHide();
   }
 
   isBookLink(element) {
@@ -110,7 +105,7 @@ class TechbookPreview {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const popupWidth = 320; // max-width from CSS
+    const popupWidth = 380; // max-width from CSS
     const maxPopupHeight = 400; // max-height from CSS
     
     // 要素の絶対位置（スクロールを考慮）
@@ -121,8 +116,8 @@ class TechbookPreview {
     
     let left, top, availableHeight;
     
-    // デフォルトは要素の右側に表示
-    left = elementAbsoluteRight + 8;
+    // デフォルトは要素の右側に表示（隙間を縮小）
+    left = elementAbsoluteRight + 2;
     top = elementAbsoluteTop;
     
     // ビューポート内での利用可能な高さを計算
@@ -132,19 +127,19 @@ class TechbookPreview {
     
     // 右側に表示しきれない場合は左側に
     if (left + popupWidth > scrollLeft + viewportWidth - 16) {
-      left = elementAbsoluteLeft - popupWidth - 8;
+      left = elementAbsoluteLeft - popupWidth - 2;
     }
     
     // 左側にも表示しきれない場合は要素の下に
     if (left < scrollLeft + 16) {
       left = elementAbsoluteLeft;
-      top = elementAbsoluteBottom + 8;
-      availableHeight = viewportBottom - Math.max(elementAbsoluteBottom + 8, viewportTop) - 16;
+      top = elementAbsoluteBottom + 2;
+      availableHeight = viewportBottom - Math.max(elementAbsoluteBottom + 2, viewportTop) - 16;
     }
     
     // 下に十分なスペースがない場合は要素の上に
     if (availableHeight < 200) {
-      top = Math.max(viewportTop + 16, elementAbsoluteTop - maxPopupHeight - 8);
+      top = Math.max(viewportTop + 16, elementAbsoluteTop - maxPopupHeight - 2);
       availableHeight = Math.min(elementAbsoluteTop, viewportBottom) - Math.max(top, viewportTop) - 16;
     }
     
@@ -154,6 +149,19 @@ class TechbookPreview {
     
     // 利用可能な高さに基づいてポップアップの最大高さを動的に設定
     const finalHeight = Math.min(maxPopupHeight, Math.max(200, availableHeight));
+    
+    // 位置に応じてクラスを追加（CSSの橋の向きを制御）
+    this.popup.classList.remove('popup-right', 'popup-left', 'popup-bottom', 'popup-top');
+    
+    if (left > elementAbsoluteRight) {
+      this.popup.classList.add('popup-right');
+    } else if (left < elementAbsoluteLeft) {
+      this.popup.classList.add('popup-left');
+    } else if (top > elementAbsoluteBottom) {
+      this.popup.classList.add('popup-bottom');
+    } else {
+      this.popup.classList.add('popup-top');
+    }
     
     this.popup.style.left = `${left}px`;
     this.popup.style.top = `${top}px`;
@@ -314,6 +322,8 @@ class TechbookPreview {
   hidePopup() {
     this.popup.classList.remove('show');
     this.currentHoveredElement = null;
+    this.isOverBook = false;
+    this.isOverPopup = false;
     this.clearHideTimeout();
   }
 
