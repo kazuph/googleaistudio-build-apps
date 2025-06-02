@@ -19,6 +19,8 @@ MediaPipe Face Detectorを使用した高精度な顔検出・画像切り抜き
 ### 📚 技術書典プレビュー Chrome Extension
 技術書典の本一覧ページで、本のリンクにマウスオーバーすると詳細情報をプレビュー表示するChrome Extension
 
+![技術書典プレビュー動作デモ](./techbook-preview-extension/assets/popup.gif)
+
 - **ソースコード**: [techbook-preview-extension/](./techbook-preview-extension/)
 - **技術スタック**: Chrome Extension Manifest V3, JavaScript, CSS
 - **機能**:
