@@ -776,7 +776,8 @@ class TechbookSwipe {
       imageUrl: book.imageUrl || '',
       url: book.href,
       author: detailedData.author || '',
-      tags: detailedData.tags || []
+      tags: detailedData.tags || [],
+      likedAt: Date.now() // Add timestamp
     };
     
     await chrome.storage.local.set({ likedBooksData });
@@ -1091,7 +1092,8 @@ class TechbookSwipe {
         imageUrl: imageUrl || '',
         url: window.location.href,
         author: author || '',
-        tags: tags || []
+        tags: tags || [],
+        likedAt: Date.now() // Add timestamp
       };
     } catch (error) {
       console.error('Failed to extract book data:', error);

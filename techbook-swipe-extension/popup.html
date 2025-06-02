@@ -6,11 +6,12 @@
   <title>技術書典Tinderスワイプ</title>
   <style>
     body {
-      width: 300px;
+      width: 400px;
       padding: 16px;
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: #f5f5f5;
+      overflow: hidden;
     }
     
     h2 {
@@ -65,9 +66,37 @@
       background-color: #5a6268;
     }
     
+    .export-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .icon-button {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .icon-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .icon-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    
     .download-button {
       background-color: #28a745;
-      color: white;
     }
     
     .download-button:hover {
@@ -77,11 +106,11 @@
     .download-button:disabled {
       background-color: #6c757d;
       cursor: not-allowed;
+      opacity: 0.5;
     }
     
     .copy-button {
       background-color: #007bff;
-      color: white;
     }
     
     .copy-button:hover {
@@ -91,6 +120,7 @@
     .copy-button:disabled {
       background-color: #6c757d;
       cursor: not-allowed;
+      opacity: 0.5;
     }
     
     .stats {
@@ -139,6 +169,86 @@
       font-size: 14px;
       line-height: 1.5;
     }
+    
+    .recent-books {
+      margin: 16px 0;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    #recent-books-content {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .recent-books-header {
+      padding: 12px 16px;
+      background-color: #ff4458;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .books-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .books-table tbody tr {
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .books-table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .books-table tbody tr:last-child {
+      border-bottom: none;
+    }
+    
+    .books-table td {
+      padding: 8px 12px;
+      font-size: 12px;
+      vertical-align: middle;
+    }
+    
+    .book-title {
+      font-weight: 500;
+      color: #333;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .book-price {
+      color: #28a745;
+      font-weight: 600;
+      text-align: right;
+      min-width: 60px;
+    }
+    
+    .book-number {
+      color: #6c757d;
+      font-size: 12px;
+      text-align: center;
+      min-width: 20px;
+      font-weight: 500;
+    }
+    
+    .empty-books {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -161,10 +271,21 @@
       </div>
     </div>
     
+    <div class="recent-books">
+      <div class="recent-books-header">
+        <span>いいねした書籍</span>
+        <div class="export-buttons">
+          <button id="download-csv" class="icon-button download-button" title="CSV形式でダウンロード">📥</button>
+          <button id="copy-to-clipboard" class="icon-button copy-button" title="クリップボードにコピー">📋</button>
+        </div>
+      </div>
+      <div id="recent-books-content">
+        <div class="empty-books">まだいいねした書籍がありません</div>
+      </div>
+    </div>
+    
     <div class="button-container">
       <button id="start-swipe" class="start-button">Tinderモードを開始</button>
-      <button id="download-csv" class="download-button">CSV形式でダウンロード</button>
-      <button id="copy-to-clipboard" class="copy-button">クリップボードにコピー</button>
       <button id="reset-history" class="reset-button">履歴をリセット</button>
     </div>
     

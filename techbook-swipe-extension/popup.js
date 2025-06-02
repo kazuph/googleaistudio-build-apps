@@ -29,10 +29,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load and display statistics
   await updateStats();
   
+  // Load and display recent books
+  await updateRecentBooks();
+  
   // Handle different page types
   if (isProductPage) {
     // Product detail page - replace start button with rating buttons
     startSwipeButton.style.display = 'none';
+    
+    // Get current rating first
+    const result = await chrome.storage.local.get(['swipeHistory']);
+    const swipeHistory = result.swipeHistory || {};
+    
+    // Extract book ID from current tab URL
+    const bookId = extractBookIdFromTabUrl(tab.url);
+    const currentRating = bookId ? swipeHistory[bookId] : null;
     
     // Create rating buttons container
     const ratingContainer = document.createElement('div');
@@ -42,31 +53,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const likeBtn = document.createElement('button');
     likeBtn.className = 'rating-btn like-btn';
     likeBtn.innerHTML = '❤️';
-    likeBtn.style.cssText = 'flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 24px; cursor: pointer; background-color: #ff4458; color: white; transition: all 0.2s ease;';
     
     const dislikeBtn = document.createElement('button');
     dislikeBtn.className = 'rating-btn dislike-btn';
     dislikeBtn.innerHTML = '❌';
-    dislikeBtn.style.cssText = 'flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 24px; cursor: pointer; background-color: #6c757d; color: white; transition: all 0.2s ease;';
+    
+    // Set initial styles based on current rating
+    updateButtonStyles(likeBtn, dislikeBtn, currentRating);
     
     // Add hover effects
-    likeBtn.addEventListener('mouseenter', () => {
-      likeBtn.style.transform = 'translateY(-1px)';
-      likeBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    });
-    likeBtn.addEventListener('mouseleave', () => {
-      likeBtn.style.transform = 'translateY(0)';
-      likeBtn.style.boxShadow = 'none';
-    });
+    const addHoverEffect = (btn, isActive) => {
+      btn.addEventListener('mouseenter', () => {
+        if (!isActive) {
+          btn.style.transform = 'translateY(-1px)';
+          btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        }
+      });
+      btn.addEventListener('mouseleave', () => {
+        if (!isActive) {
+          btn.style.transform = 'translateY(0)';
+          btn.style.boxShadow = 'none';
+        }
+      });
+    };
     
-    dislikeBtn.addEventListener('mouseenter', () => {
-      dislikeBtn.style.transform = 'translateY(-1px)';
-      dislikeBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    });
-    dislikeBtn.addEventListener('mouseleave', () => {
-      dislikeBtn.style.transform = 'translateY(0)';
-      dislikeBtn.style.boxShadow = 'none';
-    });
+    addHoverEffect(likeBtn, currentRating === 'like');
+    addHoverEffect(dislikeBtn, currentRating === 'dislike');
     
     ratingContainer.appendChild(likeBtn);
     ratingContainer.appendChild(dislikeBtn);
@@ -108,6 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await chrome.storage.local.clear();
       showMessage('履歴をリセットしました', 'success');
       await updateStats();
+      await updateRecentBooks();
       
       // Reload the current tab to reflect changes
       chrome.tabs.reload(tab.id);
@@ -232,5 +245,86 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     return field;
+  }
+
+  function extractBookIdFromTabUrl(url) {
+    if (!url) return null;
+    const match = url.match(/\/product\/([^\/\?]+)/);
+    return match ? match[1] : null;
+  }
+
+  function updateButtonStyles(likeBtn, dislikeBtn, currentRating) {
+    const baseStyle = 'flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 24px; cursor: pointer; transition: all 0.2s ease;';
+    
+    if (currentRating === 'like') {
+      // Like is active, dislike is inactive (grayscale)
+      likeBtn.style.cssText = baseStyle + ' background-color: #ff4458; color: white; transform: scale(1.1); box-shadow: 0 4px 12px rgba(255, 68, 88, 0.3);';
+      dislikeBtn.style.cssText = baseStyle + ' background-color: #f8f9fa; color: #6c757d; filter: grayscale(100%); opacity: 0.6;';
+    } else if (currentRating === 'dislike') {
+      // Dislike is active, like is inactive (grayscale)
+      likeBtn.style.cssText = baseStyle + ' background-color: #f8f9fa; color: #ff69b4; filter: grayscale(100%); opacity: 0.6;';
+      dislikeBtn.style.cssText = baseStyle + ' background-color: #6c757d; color: white; transform: scale(1.1); box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);';
+    } else {
+      // No rating - both buttons in default state
+      likeBtn.style.cssText = baseStyle + ' background-color: #fff0f1; color: #ff4458; border: 2px solid #ff4458;';
+      dislikeBtn.style.cssText = baseStyle + ' background-color: #f8f9fa; color: #6c757d; border: 2px solid #6c757d;';
+    }
+  }
+
+  async function updateRecentBooks() {
+    const recentBooksContent = document.getElementById('recent-books-content');
+    
+    try {
+      const likedBooks = await getLikedBooksData();
+      
+      if (likedBooks.length === 0) {
+        recentBooksContent.innerHTML = '<div class="empty-books">まだいいねした書籍がありません</div>';
+        return;
+      }
+
+      // Sort by most recent (likedAt timestamp) - show all books, don't limit to 10
+      const sortedBooks = likedBooks
+        .sort((a, b) => (b.likedAt || 0) - (a.likedAt || 0));
+      
+      const table = document.createElement('table');
+      table.className = 'books-table';
+      
+      const tbody = document.createElement('tbody');
+      
+      sortedBooks.forEach((book, index) => {
+        const row = document.createElement('tr');
+        row.addEventListener('click', () => {
+          chrome.tabs.create({ url: book.url, active: false });
+        });
+        
+        row.innerHTML = `
+          <td class="book-number">${index + 1}</td>
+          <td class="book-title" title="${escapeHtml(book.title || '')}">${escapeHtml(truncateText(book.title || 'タイトル不明', 30))}</td>
+          <td class="book-price">${escapeHtml(book.price || '')}</td>
+        `;
+        
+        tbody.appendChild(row);
+      });
+      
+      table.appendChild(tbody);
+      recentBooksContent.innerHTML = '';
+      recentBooksContent.appendChild(table);
+      
+    } catch (error) {
+      console.error('Failed to load recent books:', error);
+      recentBooksContent.innerHTML = '<div class="empty-books">書籍の読み込みに失敗しました</div>';
+    }
+  }
+
+  function truncateText(text, maxLength) {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 });
