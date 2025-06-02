@@ -6,5 +6,6 @@
       "Bash(npm run build:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
