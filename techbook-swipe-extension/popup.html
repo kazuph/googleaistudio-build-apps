@@ -65,6 +65,34 @@
       background-color: #5a6268;
     }
     
+    .download-button {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .download-button:hover {
+      background-color: #218838;
+    }
+    
+    .download-button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    .copy-button {
+      background-color: #007bff;
+      color: white;
+    }
+    
+    .copy-button:hover {
+      background-color: #0056b3;
+    }
+    
+    .copy-button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    
     .stats {
       margin: 16px 0;
       padding: 12px;
@@ -135,6 +163,8 @@
     
     <div class="button-container">
       <button id="start-swipe" class="start-button">Tinderモードを開始</button>
+      <button id="download-csv" class="download-button">CSV形式でダウンロード</button>
+      <button id="copy-to-clipboard" class="copy-button">クリップボードにコピー</button>
       <button id="reset-history" class="reset-button">履歴をリセット</button>
     </div>
     

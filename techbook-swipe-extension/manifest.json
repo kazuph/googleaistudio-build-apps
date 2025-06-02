@@ -29,7 +29,7 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://techbookfest.org/event/*/market/*"],
+      "matches": ["https://techbookfest.org/event/*/market/*", "https://techbookfest.org/product/*"],
       "js": ["content.js"],
       "css": ["styles.css"]
     }

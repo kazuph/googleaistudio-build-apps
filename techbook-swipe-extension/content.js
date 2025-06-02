@@ -10,15 +10,24 @@ class TechbookSwipe {
   async init() {
     await this.loadSwipeHistory();
     
-    // ページ読み込み時に履歴を反映
-    this.applySwipeHistoryToPage();
-    
-    // DOM変更を監視して、新しく追加された書籍にも履歴を反映
-    this.observePageChanges();
+    // Check if we're on a product detail page
+    if (this.isProductDetailPage()) {
+      this.initProductDetailPage();
+    } else {
+      // ページ読み込み時に履歴を反映
+      this.applySwipeHistoryToPage();
+      
+      // DOM変更を監視して、新しく追加された書籍にも履歴を反映
+      this.observePageChanges();
+    }
     
     chrome.runtime.onMessage.addListener((request) => {
       if (request.action === 'startSwipeMode') {
         this.startSwipeMode();
+      } else if (request.action === 'showRatingInterface') {
+        this.showRatingInterface();
+      } else if (request.action === 'updateRating') {
+        this.handleDirectRating(request.rating);
       }
     });
   }
@@ -441,12 +450,16 @@ class TechbookSwipe {
       const html = await response.text();
       const bookData = this.parseBookData(html);
       
+      // Store the detailed book data in the book object for later use
+      book.detailedData = bookData;
+      
       // 詳細ページから取得したタイトルがある場合、カードのタイトルを更新
       if (bookData.title && bookData.title !== book.title) {
         const titleElement = this.swipeContainer.querySelector('.swipe-card-title');
         if (titleElement) {
           titleElement.textContent = bookData.title;
         }
+        book.title = bookData.title; // Update the book object
       }
       
       // 高解像度の画像が取得できた場合、カードの画像を更新
@@ -455,6 +468,7 @@ class TechbookSwipe {
         if (imageContainer) {
           imageContainer.style.backgroundImage = `url(${bookData.imageUrl})`;
         }
+        book.imageUrl = bookData.imageUrl; // Update the book object
       }
       
       let content = '';
@@ -682,6 +696,9 @@ class TechbookSwipe {
       card.style.transform = 'translateX(150%) rotate(30deg)';
       this.swipeHistory[book.id] = 'like';
       
+      // Store detailed book data for export
+      await this.saveBookData(book);
+      
       setTimeout(() => {
         // バックグラウンドで新しいタブを開く
         chrome.runtime.sendMessage({
@@ -744,6 +761,359 @@ class TechbookSwipe {
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     
     return html;
+  }
+
+  async saveBookData(book) {
+    const result = await chrome.storage.local.get(['likedBooksData']);
+    const likedBooksData = result.likedBooksData || {};
+    
+    const detailedData = book.detailedData || {};
+    
+    likedBooksData[book.id] = {
+      title: book.title,
+      description: detailedData.description || '',
+      price: detailedData.price || book.listPrice || '',
+      imageUrl: book.imageUrl || '',
+      url: book.href,
+      author: detailedData.author || '',
+      tags: detailedData.tags || []
+    };
+    
+    await chrome.storage.local.set({ likedBooksData });
+  }
+
+  isProductDetailPage() {
+    return window.location.pathname.includes('/product/');
+  }
+
+  initProductDetailPage() {
+    // Apply visual indication if this book is already rated
+    this.applyProductPageRating();
+  }
+
+  applyProductPageRating() {
+    const bookId = this.extractBookIdFromUrl(window.location.href);
+    if (!bookId) return;
+
+    const status = this.swipeHistory[bookId];
+    if (!status) return;
+
+    // Add visual indicator to the page
+    const indicator = document.createElement('div');
+    indicator.className = 'techbook-rating-indicator';
+    indicator.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    `;
+
+    if (status === 'like') {
+      indicator.textContent = '❤️ いいね済み';
+      indicator.style.backgroundColor = '#ff4458';
+    } else if (status === 'dislike') {
+      indicator.textContent = '❌ 済み';
+      indicator.style.backgroundColor = '#6c757d';
+    }
+
+    document.body.appendChild(indicator);
+  }
+
+  extractBookIdFromUrl(url) {
+    const match = url.match(/\/product\/([^\/\?]+)/);
+    return match ? match[1] : null;
+  }
+
+  async showRatingInterface() {
+    const bookId = this.extractBookIdFromUrl(window.location.href);
+    if (!bookId) {
+      alert('書籍IDを取得できませんでした。');
+      return;
+    }
+
+    const currentStatus = this.swipeHistory[bookId];
+    
+    // Create rating modal
+    const modal = document.createElement('div');
+    modal.className = 'techbook-rating-modal';
+    modal.innerHTML = `
+      <div class="rating-overlay"></div>
+      <div class="rating-modal-content">
+        <button class="rating-close">✕</button>
+        <h2>この書籍を評価</h2>
+        <div class="current-rating">
+          ${currentStatus ? `現在の評価: ${currentStatus === 'like' ? '❤️ いいね' : '❌'}` : '未評価'}
+        </div>
+        <div class="rating-buttons">
+          <button class="rating-button like-btn ${currentStatus === 'like' ? 'active' : ''}">
+            ❤️ いいね
+          </button>
+          <button class="rating-button dislike-btn ${currentStatus === 'dislike' ? 'active' : ''}">
+            ❌
+          </button>
+          ${currentStatus ? '<button class="rating-button remove-btn">🗑️ 評価を削除</button>' : ''}
+        </div>
+      </div>
+    `;
+
+    // Add styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .techbook-rating-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+      }
+      
+      .rating-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      
+      .rating-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 32px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        min-width: 320px;
+        text-align: center;
+      }
+      
+      .rating-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #666;
+      }
+      
+      .rating-modal-content h2 {
+        margin: 0 0 16px 0;
+        color: #333;
+      }
+      
+      .current-rating {
+        margin-bottom: 24px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        color: #666;
+        font-size: 14px;
+      }
+      
+      .rating-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .rating-button {
+        padding: 16px 24px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      
+      .rating-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      
+      .like-btn {
+        border-color: #ff4458;
+        color: #ff4458;
+      }
+      
+      .like-btn:hover, .like-btn.active {
+        background: #ff4458;
+        color: white;
+      }
+      
+      .dislike-btn {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+      
+      .dislike-btn:hover, .dislike-btn.active {
+        background: #6c757d;
+        color: white;
+      }
+      
+      .remove-btn {
+        border-color: #dc3545;
+        color: #dc3545;
+      }
+      
+      .remove-btn:hover {
+        background: #dc3545;
+        color: white;
+      }
+    `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+
+    // Event listeners
+    const closeBtn = modal.querySelector('.rating-close');
+    const overlay = modal.querySelector('.rating-overlay');
+    const likeBtn = modal.querySelector('.like-btn');
+    const dislikeBtn = modal.querySelector('.dislike-btn');
+    const removeBtn = modal.querySelector('.remove-btn');
+
+    const closeModal = () => {
+      modal.remove();
+      style.remove();
+      // Refresh rating indicator
+      const existingIndicator = document.querySelector('.techbook-rating-indicator');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+      this.applyProductPageRating();
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+
+    likeBtn.addEventListener('click', async () => {
+      await this.updateBookRating(bookId, 'like');
+      closeModal();
+    });
+
+    dislikeBtn.addEventListener('click', async () => {
+      await this.updateBookRating(bookId, 'dislike');
+      closeModal();
+    });
+
+    if (removeBtn) {
+      removeBtn.addEventListener('click', async () => {
+        await this.updateBookRating(bookId, null);
+        closeModal();
+      });
+    }
+  }
+
+  async updateBookRating(bookId, rating) {
+    if (rating === null) {
+      // Remove rating
+      delete this.swipeHistory[bookId];
+      
+      // Also remove from liked books data
+      const result = await chrome.storage.local.get(['likedBooksData']);
+      const likedBooksData = result.likedBooksData || {};
+      delete likedBooksData[bookId];
+      await chrome.storage.local.set({ likedBooksData });
+    } else {
+      // Update rating
+      this.swipeHistory[bookId] = rating;
+      
+      if (rating === 'like') {
+        // Save book data for liked books
+        const bookData = await this.extractCurrentPageBookData();
+        if (bookData) {
+          const result = await chrome.storage.local.get(['likedBooksData']);
+          const likedBooksData = result.likedBooksData || {};
+          likedBooksData[bookId] = bookData;
+          await chrome.storage.local.set({ likedBooksData });
+        }
+      } else {
+        // Remove from liked books data if changed to dislike
+        const result = await chrome.storage.local.get(['likedBooksData']);
+        const likedBooksData = result.likedBooksData || {};
+        delete likedBooksData[bookId];
+        await chrome.storage.local.set({ likedBooksData });
+      }
+    }
+
+    await this.saveSwipeHistory();
+  }
+
+  async extractCurrentPageBookData() {
+    try {
+      const bookId = this.extractBookIdFromUrl(window.location.href);
+      const title = this.extractText(document, [
+        'h1',
+        'title',
+        '.book-title',
+        '.product-title',
+        '[data-testid="book-title"]',
+        'meta[property="og:title"]'
+      ]);
+      
+      const description = this.extractText(document, [
+        '.description',
+        '.book-description',
+        '[data-testid="description"]',
+        'meta[property="og:description"]',
+        '.summary'
+      ]);
+
+      const price = this.extractPrice(document);
+      
+      const imageUrl = this.extractHighResImage(document);
+      
+      const author = this.extractText(document, [
+        '.author',
+        '.circle-name',
+        '[data-testid="circle-name"]',
+        '.book-author'
+      ]);
+
+      const tags = this.extractTags(document);
+
+      return {
+        title: title || 'タイトル不明',
+        description: description || '',
+        price: price || '',
+        imageUrl: imageUrl || '',
+        url: window.location.href,
+        author: author || '',
+        tags: tags || []
+      };
+    } catch (error) {
+      console.error('Failed to extract book data:', error);
+      return null;
+    }
+  }
+
+  async handleDirectRating(rating) {
+    const bookId = this.extractBookIdFromUrl(window.location.href);
+    if (!bookId) {
+      alert('書籍IDを取得できませんでした。');
+      return;
+    }
+
+    await this.updateBookRating(bookId, rating);
+    
+    // Refresh rating indicator
+    const existingIndicator = document.querySelector('.techbook-rating-indicator');
+    if (existingIndicator) {
+      existingIndicator.remove();
+    }
+    this.applyProductPageRating();
   }
 }
 
