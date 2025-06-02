@@ -26,6 +26,9 @@ class TechbookPreview {
 
     // mouseenterとmouseleaveを使用（バブリングしない）
     document.addEventListener('mouseenter', (e) => {
+      // e.targetがElementであることを確認
+      if (!e.target || typeof e.target.closest !== 'function') return;
+      
       const bookLink = e.target.closest(bookSelector);
       if (bookLink && this.isBookLink(bookLink)) {
         this.isOverBook = true;
@@ -34,6 +37,9 @@ class TechbookPreview {
     }, true);
 
     document.addEventListener('mouseleave', (e) => {
+      // e.targetがElementであることを確認
+      if (!e.target || typeof e.target.closest !== 'function') return;
+      
       const bookLink = e.target.closest(bookSelector);
       if (bookLink && this.currentHoveredElement === bookLink) {
         this.isOverBook = false;
