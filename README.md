@@ -32,6 +32,8 @@ MediaPipe Face Detectorを使用した高精度な顔検出・画像切り抜き
 ### 💕 技術書典Tinderスワイプ Chrome Extension
 技術書典の書籍一覧をTinder風のスワイプUIで効率的に閲覧できるChrome Extension
 
+![技術書典Tinderスワイプ動作デモ](./techbook-swipe-extension/assets/tinder.gif)
+
 - **ソースコード**: [techbook-swipe-extension/](./techbook-swipe-extension/)
 - **技術スタック**: Chrome Extension Manifest V3, JavaScript, CSS
 - **機能**:
