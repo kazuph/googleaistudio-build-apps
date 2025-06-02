@@ -301,21 +301,11 @@
   color: #666;
 }
 
-.reset-button {
-  margin-top: 30px;
-  padding: 12px 30px;
-  background: rgb(76, 175, 80);
-  color: white;
-  border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.reset-button:hover {
-  background: rgba(76, 175, 80, 0.8);
+.complete-note {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #999;
+  font-style: italic;
 }
 
 .swipe-card-description strong {

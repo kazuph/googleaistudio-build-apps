@@ -9,7 +9,13 @@ class TechbookSwipe {
 
   async init() {
     await this.loadSwipeHistory();
-    this.markSwipedBooks();
+    
+    // ページ読み込み時に履歴を反映
+    this.applySwipeHistoryToPage();
+    
+    // DOM変更を監視して、新しく追加された書籍にも履歴を反映
+    this.observePageChanges();
+    
     chrome.runtime.onMessage.addListener((request) => {
       if (request.action === 'startSwipeMode') {
         this.startSwipeMode();
@@ -26,7 +32,7 @@ class TechbookSwipe {
     await chrome.storage.local.set({ swipeHistory: this.swipeHistory });
   }
 
-  markSwipedBooks() {
+  applySwipeHistoryToPage() {
     const bookLinks = document.querySelectorAll('a[href*="/product/"]');
     bookLinks.forEach(link => {
       const href = link.getAttribute('href');
@@ -34,21 +40,67 @@ class TechbookSwipe {
       
       if (this.swipeHistory[bookId]) {
         const status = this.swipeHistory[bookId];
-        const bookCard = link.closest('li, div');
         
-        if (bookCard) {
+        // より外側の要素を探す（padding-rightやmargin-bottomがある要素）
+        let elementToHide = link.closest('div[tabindex="0"]');
+        if (elementToHide && elementToHide.parentElement) {
+          const parent = elementToHide.parentElement;
+          // padding-rightやmargin-bottomのスタイルがある親要素を探す
+          if (parent.style.paddingRight || parent.style.marginBottom) {
+            elementToHide = parent;
+          }
+        }
+        
+        // フォールバック：見つからない場合は従来の方法
+        if (!elementToHide) {
+          elementToHide = link.closest('li, div');
+        }
+        
+        if (elementToHide && !elementToHide.dataset.swipeProcessed) {
+          elementToHide.dataset.swipeProcessed = 'true';
+          
           if (status === 'dislike') {
-            bookCard.style.display = 'none';
+            elementToHide.style.display = 'none';
           } else if (status === 'like') {
-            const heartIcon = document.createElement('span');
-            heartIcon.className = 'techbook-heart-icon';
-            heartIcon.innerHTML = '❤️';
-            heartIcon.style.cssText = 'position: absolute; top: 10px; right: 10px; font-size: 24px; z-index: 10;';
-            bookCard.style.position = 'relative';
-            bookCard.appendChild(heartIcon);
+            // ハートアイコンを追加する要素を決定
+            const bookCard = link.closest('div[tabindex="0"]') || link.closest('li, div');
+            if (bookCard && !bookCard.querySelector('.techbook-heart-icon')) {
+              const heartIcon = document.createElement('span');
+              heartIcon.className = 'techbook-heart-icon';
+              heartIcon.innerHTML = '❤️';
+              heartIcon.style.cssText = 'position: absolute; top: 10px; right: 10px; font-size: 24px; z-index: 10;';
+              bookCard.style.position = 'relative';
+              bookCard.appendChild(heartIcon);
+            }
           }
         }
       }
+    });
+  }
+
+  observePageChanges() {
+    // MutationObserverで動的に追加される書籍を監視
+    const observer = new MutationObserver((mutations) => {
+      // 新しい書籍が追加されたかチェック
+      let hasNewBooks = false;
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === 1 && (node.querySelector && node.querySelector('a[href*="/product/"]'))) {
+            hasNewBooks = true;
+          }
+        });
+      });
+      
+      // 新しい書籍があれば履歴を適用
+      if (hasNewBooks) {
+        setTimeout(() => this.applySwipeHistoryToPage(), 100);
+      }
+    });
+    
+    // body全体を監視
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
     });
   }
 
@@ -648,18 +700,11 @@ class TechbookSwipe {
         <h2>すべての書籍を確認しました！</h2>
         <p>いいねした書籍: ${Object.values(this.swipeHistory).filter(s => s === 'like').length}冊</p>
         <p>スキップした書籍: ${Object.values(this.swipeHistory).filter(s => s === 'dislike').length}冊</p>
-        <button class="reset-button">履歴をリセット</button>
+        <p class="complete-note">履歴のリセットは拡張機能のポップアップから行えます</p>
       </div>
     `;
     
     this.swipeContainer.querySelector('.swipe-close').addEventListener('click', () => this.closeSwipeMode());
-    this.swipeContainer.querySelector('.reset-button').addEventListener('click', () => this.resetHistory());
-  }
-
-  async resetHistory() {
-    this.swipeHistory = {};
-    await this.saveSwipeHistory();
-    location.reload();
   }
 
   closeSwipeMode() {
@@ -667,7 +712,7 @@ class TechbookSwipe {
       this.swipeContainer.remove();
       this.swipeContainer = null;
     }
-    this.markSwipedBooks();
+    this.applySwipeHistoryToPage();
   }
 
   escapeHtml(text) {
