@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "技術書典プレビュー",
+  "version": "1.0",
+  "description": "技術書典の本一覧ページでマウスオーバー時に詳細情報をプレビュー表示",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://techbookfest.org/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://techbookfest.org/event/*/market/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.html"],
+      "matches": ["https://techbookfest.org/*"]
+    }
+  ]
+}
