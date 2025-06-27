@@ -24,6 +24,7 @@ export const useBluetooth = () => {
   
   const controlPointRef = useRef<BluetoothRemoteGATTCharacteristic | null>(null);
   const monitoringIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const previousDataRef = useRef<{ distance: number; time: number }>({ distance: 0, time: 0 });
 
   const log = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -32,19 +33,42 @@ export const useBluetooth = () => {
     console.log(logMessage);
   }, []);
 
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+    log('🧹 ログをクリアしました');
+  }, [log]);
+
   const parseIndoorBikeData = useCallback((dataView: DataView): BikeServiceData => {
     const flags = dataView.getUint16(0, true);
     let offset = 2;
     const data: BikeServiceData = {};
 
-    console.log('🔍 Indoor Bike Data flags:', flags.toString(16), 'length:', dataView.byteLength);
+    console.log('🔍 Indoor Bike Data flags:', flags.toString(16), 'binary:', flags.toString(2), 'length:', dataView.byteLength);
+    
+    // 生データをログ出力
+    const bytes = [];
+    for (let i = 0; i < dataView.byteLength; i++) {
+      bytes.push(dataView.getUint8(i).toString(16).padStart(2, '0'));
+    }
+    console.log('🔍 Raw data bytes:', bytes.join(' '));
+
+    console.log('🔍 Flag checks:');
+    console.log('  - Speed (0x01):', !!(flags & 0x01));
+    console.log('  - Cadence (0x02):', !!(flags & 0x02));
+    console.log('  - Total Distance (0x04):', !!(flags & 0x04));
+    console.log('  - Resistance (0x08):', !!(flags & 0x08));
+    console.log('  - Power (0x10):', !!(flags & 0x10));
+    console.log('  - Heart Rate (0x20):', !!(flags & 0x20));
+    console.log('  - Elapsed Time (0x40):', !!(flags & 0x40));
 
     if (flags & 0x01) {
       data.speed = (dataView.getUint16(offset, true) / 100);
+      console.log('  → Speed value:', data.speed, 'km/h');
       offset += 2;
     }
     if (flags & 0x02) {
       data.cadence = (dataView.getUint16(offset, true) / 2);
+      console.log('  → Cadence value:', data.cadence, 'rpm');
       offset += 2;
     }
     if (flags & 0x04) {
@@ -52,26 +76,66 @@ export const useBluetooth = () => {
       data.totalDistance = dataView.getUint8(offset) | 
                            (dataView.getUint8(offset + 1) << 8) | 
                            (dataView.getUint8(offset + 2) << 16);
+      console.log('  → Total Distance value:', data.totalDistance, 'm');
       offset += 3;
     }
     if (flags & 0x08) {
       data.resistance = dataView.getInt16(offset, true);
+      console.log('  → Resistance value:', data.resistance);
       offset += 2;
     }
     if (flags & 0x10) {
       data.power = dataView.getInt16(offset, true);
+      console.log('  → Power value:', data.power, 'W');
       offset += 2;
     }
     if (flags & 0x20) {
       data.heartRate = dataView.getUint8(offset);
+      console.log('  → Heart Rate value:', data.heartRate, 'bpm');
       offset += 1;
     }
     if (flags & 0x40) {
       data.elapsedTime = dataView.getUint16(offset, true);
+      console.log('  → Elapsed Time value:', data.elapsedTime, 's');
       offset += 2;
     }
 
-    console.log('🔍 Parsed data:', data);
+    // フィットネス機器がspeed/cadence/powerを送信しない場合の対処
+    // totalDistanceから速度を推定する
+    if (!data.speed && data.totalDistance !== undefined && data.elapsedTime !== undefined) {
+      const prevDistance = previousDataRef.current.distance;
+      const prevTime = previousDataRef.current.time;
+      
+      if (data.elapsedTime > prevTime) {
+        const distanceDiff = data.totalDistance - prevDistance; // meters
+        const timeDiff = data.elapsedTime - prevTime; // seconds
+        
+        if (timeDiff > 0 && distanceDiff > 0) {
+          data.speed = (distanceDiff / timeDiff) * 3.6; // m/s to km/h
+          console.log('  → Calculated Speed from distance:', data.speed.toFixed(2), 'km/h');
+          
+          // エアロバイクの一般的な公式でパワーを推定
+          // Power (watts) ≈ speed^2 * constant + base resistance
+          if (!data.power && data.speed > 0) {
+            const estimatedPower = Math.round(data.speed * data.speed * 0.5 + 50);
+            data.power = estimatedPower;
+            console.log('  → Estimated Power from speed:', data.power, 'W');
+          }
+          
+          // ケイデンスの推定（一般的なエアロバイクの経験値）
+          if (!data.cadence && data.speed > 0) {
+            const estimatedCadence = Math.round(40 + data.speed * 2); // 経験的な式
+            data.cadence = Math.min(estimatedCadence, 120); // 現実的な上限
+            console.log('  → Estimated Cadence from speed:', data.cadence, 'rpm');
+          }
+        }
+      }
+      
+      previousDataRef.current.distance = data.totalDistance;
+      previousDataRef.current.time = data.elapsedTime;
+    }
+
+    console.log('🔍 Final parsed data:', data);
     return data;
   }, []);
 
@@ -184,6 +248,9 @@ export const useBluetooth = () => {
     try {
       setBluetoothState(prev => ({ ...prev, isMonitoring: true }));
       log('📊 データモニタリング開始');
+      
+      // Reset previous data for fresh calculations
+      previousDataRef.current = { distance: 0, time: 0 };
 
       // Try different services in order of preference
       const services = [
@@ -192,6 +259,9 @@ export const useBluetooth = () => {
         { uuid: CSC_SERVICE, characteristic: CSC_MEASUREMENT_CHARACTERISTIC, parser: parseCSCData, name: 'CSC' },
       ];
 
+      let successfulService = false;
+      
+      // Try to connect to multiple services for comprehensive data
       for (const serviceInfo of services) {
         try {
           const service = await targetServer.getPrimaryService(serviceInfo.uuid);
@@ -205,15 +275,39 @@ export const useBluetooth = () => {
             if (dataView) {
               const data = serviceInfo.parser(dataView);
               log(`📈 ${serviceInfo.name}データ受信: ${JSON.stringify(data)}`);
-              setCurrentData(prev => ({ ...prev, ...data }));
+              
+              // Merge data with intelligent priority (latest data wins, but keep existing if new is empty)
+              setCurrentData(prev => {
+                const merged = { ...prev };
+                
+                // Type-safe data merging
+                if (data.speed !== undefined && data.speed !== null) merged.speed = data.speed;
+                if (data.cadence !== undefined && data.cadence !== null) merged.cadence = data.cadence;
+                if (data.power !== undefined && data.power !== null) merged.power = data.power;
+                if (data.resistance !== undefined && data.resistance !== null) merged.resistance = data.resistance;
+                if (data.totalDistance !== undefined && data.totalDistance !== null) merged.totalDistance = data.totalDistance;
+                if (data.elapsedTime !== undefined && data.elapsedTime !== null) merged.elapsedTime = data.elapsedTime;
+                if (data.heartRate !== undefined && data.heartRate !== null) merged.heartRate = data.heartRate;
+                
+                return merged;
+              });
             }
           });
 
           log(`✅ ${serviceInfo.name}サービス監視開始`);
-          break;
+          successfulService = true;
+          
+          // Don't break - try to connect to all available services for maximum data coverage
         } catch (e) {
-          log(`⚠️ ${serviceInfo.name}サービスは利用できません`);
+          log(`⚠️ ${serviceInfo.name}サービスは利用できません: ${e}`);
+          console.log(`Service error for ${serviceInfo.name}:`, e);
         }
+      }
+      
+      if (!successfulService) {
+        log('❌ 利用可能なサービスが見つかりませんでした');
+        setBluetoothState(prev => ({ ...prev, isMonitoring: false }));
+        return false;
       }
 
       return true;
@@ -290,5 +384,6 @@ export const useBluetooth = () => {
     startMonitoring,
     stopMonitoring,
     setResistanceLevel,
+    clearLogs,
   };
 };

@@ -11,7 +11,7 @@ export const ResistancePanel: React.FC<ResistancePanelProps> = ({
   onResistanceChange,
   isConnected,
 }) => {
-  const [targetResistance, setTargetResistance] = useState(currentResistance);
+  const [targetResistance, setTargetResistance] = useState(currentResistance || 32);
   const [isAdjusting, setIsAdjusting] = useState(false);
 
   const handleResistanceChange = async (newLevel: number) => {
@@ -30,18 +30,29 @@ export const ResistancePanel: React.FC<ResistancePanelProps> = ({
   };
 
   const adjustResistance = (delta: number) => {
-    const newLevel = Math.max(0, Math.min(20, targetResistance + delta));
+    const newLevel = Math.max(1, Math.min(80, targetResistance + delta));
     handleResistanceChange(newLevel);
   };
 
-  const resistanceButtons = Array.from({ length: 21 }, (_, i) => i).map(level => (
+  // 5段階のプリセットボタン: 軽い、やや軽い、普通、やや重い、重い
+  const presetLevels = [
+    { label: '軽い', value: 16, emoji: '🟢' },     // 1-80の20%
+    { label: 'やや軽い', value: 32, emoji: '🟡' },  // 1-80の40%
+    { label: '普通', value: 48, emoji: '🟠' },     // 1-80の60%
+    { label: 'やや重い', value: 64, emoji: '🔴' },  // 1-80の80%
+    { label: '重い', value: 80, emoji: '🟣' },     // 1-80の100%
+  ];
+
+  const resistanceButtons = presetLevels.map(preset => (
     <button
-      key={level}
-      className={`resistance-btn ${targetResistance === level ? 'active' : ''}`}
-      onClick={() => handleResistanceChange(level)}
+      key={preset.value}
+      className={`resistance-preset-btn ${targetResistance === preset.value ? 'active' : ''}`}
+      onClick={() => handleResistanceChange(preset.value)}
       disabled={!isConnected || isAdjusting}
     >
-      {level}
+      <span className="preset-emoji">{preset.emoji}</span>
+      <span className="preset-label">{preset.label}</span>
+      <span className="preset-value">{preset.value}</span>
     </button>
   ));
 
@@ -58,29 +69,29 @@ export const ResistancePanel: React.FC<ResistancePanelProps> = ({
       <div className="resistance-quick-controls">
         <button
           className="resistance-control-btn"
-          onClick={() => adjustResistance(-5)}
-          disabled={!isConnected || isAdjusting || targetResistance <= 0}
+          onClick={() => adjustResistance(-10)}
+          disabled={!isConnected || isAdjusting || targetResistance <= 1}
         >
           --
         </button>
         <button
           className="resistance-control-btn"
           onClick={() => adjustResistance(-1)}
-          disabled={!isConnected || isAdjusting || targetResistance <= 0}
+          disabled={!isConnected || isAdjusting || targetResistance <= 1}
         >
           -
         </button>
         <button
           className="resistance-control-btn"
           onClick={() => adjustResistance(1)}
-          disabled={!isConnected || isAdjusting || targetResistance >= 20}
+          disabled={!isConnected || isAdjusting || targetResistance >= 80}
         >
           +
         </button>
         <button
           className="resistance-control-btn"
-          onClick={() => adjustResistance(5)}
-          disabled={!isConnected || isAdjusting || targetResistance >= 20}
+          onClick={() => adjustResistance(10)}
+          disabled={!isConnected || isAdjusting || targetResistance >= 80}
         >
           ++
         </button>

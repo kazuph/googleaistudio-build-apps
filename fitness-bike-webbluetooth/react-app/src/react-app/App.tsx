@@ -28,6 +28,7 @@ function App() {
     startMonitoring,
     stopMonitoring,
     setResistanceLevel,
+    clearLogs,
   } = useBluetooth();
 
   // Workout data management
@@ -83,10 +84,6 @@ function App() {
     return await setResistanceLevel(level);
   }, [setResistanceLevel]);
 
-  const clearLogs = useCallback(() => {
-    // This would require updating the useBluetooth hook to support clearing logs
-    // For now, we'll just implement it in the hook later
-  }, []);
 
   // Check Web Bluetooth API support
   if (!navigator.bluetooth) {
