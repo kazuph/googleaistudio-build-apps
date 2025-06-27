@@ -33,7 +33,6 @@ export const useWorkoutData = (currentData: BikeServiceData, isMonitoring: boole
   const [userWeight, setUserWeight] = useState(70); // kg
   const sessionStartTime = useRef<number | null>(null);
   const lastDistanceUpdateTime = useRef<number | null>(null);
-  const lastTotalDistanceUpdate = useRef(0);
 
   // Load stored data on mount
   useEffect(() => {

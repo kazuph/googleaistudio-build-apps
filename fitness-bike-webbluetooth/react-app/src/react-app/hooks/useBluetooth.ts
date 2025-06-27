@@ -46,7 +46,10 @@ export const useBluetooth = () => {
       offset += 2;
     }
     if (flags & 0x04) {
-      data.totalDistance = dataView.getUint24(offset, true);
+      // getUint24 doesn't exist, so we construct it manually
+      data.totalDistance = dataView.getUint8(offset) | 
+                           (dataView.getUint8(offset + 1) << 8) | 
+                           (dataView.getUint8(offset + 2) << 16);
       offset += 3;
     }
     if (flags & 0x08) {
@@ -91,18 +94,16 @@ export const useBluetooth = () => {
     const data: BikeServiceData = {};
 
     if (flags & 0x01) {
-      const wheelRevolutions = dataView.getUint32(offset, true);
-      offset += 4;
-      const lastWheelEventTime = dataView.getUint16(offset, true);
-      offset += 2;
+      // Wheel revolution data
+      offset += 4; // wheelRevolutions
+      offset += 2; // lastWheelEventTime
       // Calculate speed from wheel data if needed
     }
 
     if (flags & 0x02) {
       const crankRevolutions = dataView.getUint16(offset, true);
       offset += 2;
-      const lastCrankEventTime = dataView.getUint16(offset, true);
-      offset += 2;
+      offset += 2; // lastCrankEventTime
       // Calculate cadence from crank data
       data.cadence = crankRevolutions; // Simplified
     }
@@ -193,8 +194,8 @@ export const useBluetooth = () => {
           
           await characteristic.startNotifications();
           
-          characteristic.addEventListener('characteristicvaluechanged', (event) => {
-            const target = event.target as BluetoothRemoteGATTCharacteristic;
+          characteristic.addEventListener('characteristicvaluechanged', (event: Event) => {
+            const target = event.target as unknown as BluetoothRemoteGATTCharacteristic;
             const dataView = target.value;
             if (dataView) {
               const data = serviceInfo.parser(dataView);
