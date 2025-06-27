@@ -38,6 +38,21 @@ export const useBluetooth = () => {
     log('🧹 ログをクリアしました');
   }, [log]);
 
+  const requestControl = useCallback(async (controlPoint: BluetoothRemoteGATTCharacteristic) => {
+    try {
+      const command = new Uint8Array(1);
+      command[0] = 0x00; // OpCode 0x00: Request Control
+      
+      log('🎛️ 制御権要求送信中...');
+      await controlPoint.writeValue(command);
+      log('✅ 制御権要求送信完了');
+      return true;
+    } catch (error) {
+      log(`❌ 制御権要求エラー: ${error}`);
+      return false;
+    }
+  }, [log]);
+
   const parseIndoorBikeData = useCallback((dataView: DataView): BikeServiceData => {
     const flags = dataView.getUint16(0, true);
     let offset = 2;
@@ -224,7 +239,21 @@ export const useBluetooth = () => {
         const fitnessService = await server.getPrimaryService(FITNESS_MACHINE_SERVICE);
         const controlPoint = await fitnessService.getCharacteristic(FITNESS_MACHINE_CONTROL_POINT_CHARACTERISTIC);
         controlPointRef.current = controlPoint;
+        
+        // Control Pointの応答を監視
+        await controlPoint.startNotifications();
+        controlPoint.addEventListener('characteristicvaluechanged', (event: Event) => {
+          const target = event.target as unknown as BluetoothRemoteGATTCharacteristic;
+          const dataView = target.value;
+          if (dataView) {
+            log(`🎛️ Control Point応答: ${Array.from(new Uint8Array(dataView.buffer)).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+          }
+        });
+        
         log('⚡ フィットネスマシン制御ポイント取得完了');
+        
+        // 制御権要求
+        await requestControl(controlPoint);
       } catch (e) {
         log('⚠️ 制御ポイントは利用できません');
       }
@@ -234,6 +263,37 @@ export const useBluetooth = () => {
       log(`❌ 接続エラー: ${error}`);
       setConnectionStatus('error');
       return { success: false, server: null };
+    }
+  }, [log]);
+
+  const startResume = useCallback(async () => {
+    if (!controlPointRef.current) {
+      log('⚠️ Control Pointが利用できません - Resume不可');
+      return false;
+    }
+
+    try {
+      const command = new Uint8Array(1);
+      command[0] = 0x01; // OpCode 0x01: Reset
+      
+      log('🔄 Reset送信中...');
+      await controlPointRef.current.writeValue(command);
+      log('✅ Reset送信完了');
+      
+      // 少し待ってからResume
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const resumeCommand = new Uint8Array(1);
+      resumeCommand[0] = 0x02; // OpCode 0x02: Start or Resume
+      
+      log('▶️ Resume送信中...');
+      await controlPointRef.current.writeValue(resumeCommand);
+      log('✅ Resume送信完了');
+      
+      return true;
+    } catch (error) {
+      log(`❌ Start/Resume エラー: ${error}`);
+      return false;
     }
   }, [log]);
 
@@ -251,6 +311,12 @@ export const useBluetooth = () => {
       
       // Reset previous data for fresh calculations
       previousDataRef.current = { distance: 0, time: 0 };
+
+      // 制御権要求とセットアップを追加（元のHTMLと同じ手順）
+      if (controlPointRef.current) {
+        await requestControl(controlPointRef.current);
+        await startResume();
+      }
 
       // Try different services in order of preference
       const services = [
@@ -316,7 +382,7 @@ export const useBluetooth = () => {
       setBluetoothState(prev => ({ ...prev, isMonitoring: false }));
       return false;
     }
-  }, [bluetoothState.server, log, parseIndoorBikeData, parseCyclingPowerData, parseCSCData]);
+  }, [bluetoothState.server, log, parseIndoorBikeData, parseCyclingPowerData, parseCSCData, requestControl, startResume]);
 
   const stopMonitoring = useCallback(() => {
     if (monitoringIntervalRef.current) {
@@ -360,6 +426,12 @@ export const useBluetooth = () => {
     }
 
     try {
+      // 元のHTMLと同じように制御権を再確認
+      await requestControl(controlPointRef.current);
+      
+      // 少し待ってから抵抗設定
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       const buffer = new ArrayBuffer(3);
       const view = new DataView(buffer);
       view.setUint8(0, 0x04); // Set Target Resistance Level command
@@ -367,12 +439,13 @@ export const useBluetooth = () => {
       
       await controlPointRef.current.writeValue(buffer);
       log(`⚙️ 抵抗レベルを ${level} に設定`);
+      
       return true;
     } catch (error) {
       log(`❌ 抵抗設定エラー: ${error}`);
       return false;
     }
-  }, [log]);
+  }, [log, requestControl]);
 
   return {
     bluetoothState,

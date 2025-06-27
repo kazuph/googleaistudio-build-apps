@@ -53,10 +53,17 @@ function App() {
   const handleConnect = useCallback(async () => {
     const result = await connect();
     if (result && typeof result === 'object' && result.success && result.server) {
-      // 接続後すぐにモニタリングを開始
       resetSession();
-      const started = await startMonitoring(result.server);
-      return started;
+      
+      // 元のHTMLと同じように1秒後にモニタリングを開始
+      setTimeout(async () => {
+        const started = await startMonitoring(result.server);
+        if (started) {
+          console.log('🚀 データモニタリング自動開始完了');
+        }
+      }, 1000);
+      
+      return true;
     }
     return false;
   }, [connect, startMonitoring, resetSession]);
