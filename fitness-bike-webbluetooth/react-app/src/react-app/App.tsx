@@ -26,7 +26,6 @@ function App() {
     connect,
     disconnect,
     startMonitoring,
-    stopMonitoring,
     setResistanceLevel,
     clearLogs,
   } = useBluetooth();
@@ -69,16 +68,6 @@ function App() {
     await disconnect();
   }, [disconnect, bluetoothState.isMonitoring, completeSession]);
 
-  const handleStartMonitoring = useCallback(async () => {
-    resetSession(); // Reset session data when starting new monitoring
-    const started = await startMonitoring();
-    return started;
-  }, [startMonitoring, resetSession]);
-
-  const handleStopMonitoring = useCallback(() => {
-    completeSession(); // Save session data when stopping
-    stopMonitoring();
-  }, [stopMonitoring, completeSession]);
 
   const handleResistanceChange = useCallback(async (level: number) => {
     return await setResistanceLevel(level);
@@ -108,8 +97,6 @@ function App() {
         isMonitoring={bluetoothState.isMonitoring}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
-        onStartMonitoring={handleStartMonitoring}
-        onStopMonitoring={handleStopMonitoring}
       />
 
       <div className="main-dashboard">

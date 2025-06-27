@@ -6,8 +6,6 @@ interface ConnectionStatusProps {
   isMonitoring: boolean;
   onConnect: () => Promise<boolean>;
   onDisconnect: () => Promise<void>;
-  onStartMonitoring: () => Promise<boolean>;
-  onStopMonitoring: () => void;
 }
 
 export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
@@ -15,8 +13,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   isMonitoring,
   onConnect,
   onDisconnect,
-  onStartMonitoring,
-  onStopMonitoring,
 }) => {
   const getStatusText = () => {
     switch (status) {
@@ -45,49 +41,41 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   };
 
   const handleButtonClick = async () => {
-    if (status === 'connected') {
-      if (isMonitoring) {
-        onStopMonitoring();
-      } else {
-        await onStartMonitoring();
-      }
-    } else if (status === 'disconnected' || status === 'error') {
-      const connected = await onConnect();
-      if (connected) {
-        await onStartMonitoring();
-      }
+    if (status === 'disconnected' || status === 'error') {
+      await onConnect();
     }
   };
 
   const getButtonText = () => {
     if (status === 'connecting') return '接続中...';
     if (status === 'connected') {
-      return isMonitoring ? 'モニタリング停止' : 'モニタリング開始';
+      return 'デバイス接続済み';
     }
     return 'デバイスに接続';
   };
 
-  const isButtonDisabled = status === 'connecting';
+  const isButtonDisabled = status === 'connecting' || status === 'connected';
 
   return (
     <div className={getStatusClass()}>
       <div>{getStatusText()}</div>
-      <button
-        className={`toggle-btn ${status === 'connected' ? 'connected' : ''}`}
-        onClick={handleButtonClick}
-        disabled={isButtonDisabled}
-      >
-        {getButtonText()}
-      </button>
-      {status === 'connected' && (
+      <div className="connection-buttons">
         <button
-          className="disconnect-btn"
-          onClick={onDisconnect}
-          style={{ marginLeft: '10px' }}
+          className={`toggle-btn ${status === 'connected' ? 'connected' : ''}`}
+          onClick={handleButtonClick}
+          disabled={isButtonDisabled}
         >
-          切断
+          {getButtonText()}
         </button>
-      )}
+        {status === 'connected' && (
+          <button
+            className="disconnect-btn"
+            onClick={onDisconnect}
+          >
+            切断
+          </button>
+        )}
+      </div>
     </div>
   );
 };
