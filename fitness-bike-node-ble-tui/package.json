@@ -1,0 +1,29 @@
+{
+  "name": "implementation",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "fitness-bike-controller.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/mcp-server.js",
+    "dev": "tsc && node build/mcp-server.js",
+    "tui": "tsx tui-app.tsx",
+    "tui:debug": "tsx tui-app.tsx --debug",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-26",
+    "@modelcontextprotocol/sdk": "^1.13.2",
+    "@types/node": "^24.0.4",
+    "@types/react": "^19.1.8",
+    "ink": "^6.0.1",
+    "react": "^19.1.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "zod": "^3.25.67"
+  }
+}
