@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const dislikedCountSpan = document.getElementById('disliked-count');
   
   // Get current tab
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   
   // Check if we're on techbookfest.org
   const isMarketPage = tab.url && tab.url.includes('techbookfest.org/event/') && tab.url.includes('/market/');
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     startSwipeButton.style.display = 'none';
     
     // Get current rating first
-    const result = await chrome.storage.local.get(['swipeHistory']);
+    const result = await browser.storage.local.get(['swipeHistory']);
     const swipeHistory = result.swipeHistory || {};
     
     // Extract book ID from current tab URL
@@ -52,11 +52,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const likeBtn = document.createElement('button');
     likeBtn.className = 'rating-btn like-btn';
-    likeBtn.innerHTML = '❤️';
+    likeBtn.textContent = '❤️';
     
     const dislikeBtn = document.createElement('button');
     dislikeBtn.className = 'rating-btn dislike-btn';
-    dislikeBtn.innerHTML = '❌';
+    dislikeBtn.textContent = '❌';
     
     // Set initial styles based on current rating
     updateButtonStyles(likeBtn, dislikeBtn, currentRating);
@@ -88,18 +88,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Add event listeners
     likeBtn.addEventListener('click', async () => {
-      chrome.tabs.sendMessage(tab.id, { action: 'updateRating', rating: 'like' });
+      browser.tabs.sendMessage(tab.id, { action: 'updateRating', rating: 'like' });
       window.close();
     });
     
     dislikeBtn.addEventListener('click', async () => {
-      chrome.tabs.sendMessage(tab.id, { action: 'updateRating', rating: 'dislike' });
+      browser.tabs.sendMessage(tab.id, { action: 'updateRating', rating: 'dislike' });
       window.close();
     });
   } else {
     // Market page - start swipe mode
     startSwipeButton.addEventListener('click', async () => {
-      chrome.tabs.sendMessage(tab.id, { action: 'startSwipeMode' });
+      browser.tabs.sendMessage(tab.id, { action: 'startSwipeMode' });
       window.close();
     });
   }
@@ -117,18 +117,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Reset history
   resetHistoryButton.addEventListener('click', async () => {
     if (confirm('本当に履歴をリセットしますか？\nこの操作は取り消せません。')) {
-      await chrome.storage.local.clear();
+      await browser.storage.local.clear();
       showMessage('履歴をリセットしました', 'success');
       await updateStats();
       await updateRecentBooks();
       
       // Reload the current tab to reflect changes
-      chrome.tabs.reload(tab.id);
+      browser.tabs.reload(tab.id);
     }
   });
   
   async function updateStats() {
-    const result = await chrome.storage.local.get(['swipeHistory']);
+    const result = await browser.storage.local.get(['swipeHistory']);
     const swipeHistory = result.swipeHistory || {};
     
     const likedCount = Object.values(swipeHistory).filter(s => s === 'like').length;
@@ -202,8 +202,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function getLikedBooksData() {
     const [likedBooksData, swipeHistory] = await Promise.all([
-      chrome.storage.local.get(['likedBooksData']),
-      chrome.storage.local.get(['swipeHistory'])
+      browser.storage.local.get(['likedBooksData']),
+      browser.storage.local.get(['swipeHistory'])
     ]);
 
     const likedBooks = likedBooksData.likedBooksData || {};
@@ -278,7 +278,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const likedBooks = await getLikedBooksData();
       
       if (likedBooks.length === 0) {
-        recentBooksContent.innerHTML = '<div class="empty-books">まだいいねした書籍がありません</div>';
+        recentBooksContent.textContent = '';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-books';
+        emptyDiv.textContent = 'まだいいねした書籍がありません';
+        recentBooksContent.appendChild(emptyDiv);
         return;
       }
 
@@ -294,25 +298,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       sortedBooks.forEach((book, index) => {
         const row = document.createElement('tr');
         row.addEventListener('click', () => {
-          chrome.tabs.create({ url: book.url, active: false });
+          browser.tabs.create({ url: book.url, active: true });
         });
         
-        row.innerHTML = `
-          <td class="book-number">${index + 1}</td>
-          <td class="book-title" title="${escapeHtml(book.title || '')}">${escapeHtml(truncateText(book.title || 'タイトル不明', 30))}</td>
-          <td class="book-price">${escapeHtml(book.price || '')}</td>
-        `;
+        // Create number cell
+        const numberCell = document.createElement('td');
+        numberCell.className = 'book-number';
+        numberCell.textContent = index + 1;
+        row.appendChild(numberCell);
+        
+        // Create title cell
+        const titleCell = document.createElement('td');
+        titleCell.className = 'book-title';
+        titleCell.title = book.title || '';
+        titleCell.textContent = truncateText(book.title || 'タイトル不明', 30);
+        row.appendChild(titleCell);
+        
+        // Create price cell
+        const priceCell = document.createElement('td');
+        priceCell.className = 'book-price';
+        priceCell.textContent = book.price || '';
+        row.appendChild(priceCell);
         
         tbody.appendChild(row);
       });
       
       table.appendChild(tbody);
-      recentBooksContent.innerHTML = '';
+      recentBooksContent.textContent = '';
       recentBooksContent.appendChild(table);
       
     } catch (error) {
       console.error('Failed to load recent books:', error);
-      recentBooksContent.innerHTML = '<div class="empty-books">書籍の読み込みに失敗しました</div>';
+      recentBooksContent.textContent = '';
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'empty-books';
+      errorDiv.textContent = '書籍の読み込みに失敗しました';
+      recentBooksContent.appendChild(errorDiv);
     }
   }
 

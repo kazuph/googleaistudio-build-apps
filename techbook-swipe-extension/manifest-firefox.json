@@ -1,0 +1,47 @@
+{
+  "manifest_version": 2,
+  "name": "Kazuph Book Browser for Tech Events",
+  "version": "0.1.0",
+  "description": "技術書をスワイプUIで効率的に閲覧する拡張機能（現在は技術書典に対応）",
+  "author": "kazuph",
+  "developer": {
+    "name": "kazuph",
+    "email": "kazu.homma@gmail.com",
+    "url": "https://github.com/kazuph"
+  },
+  "homepage_url": "https://github.com/kazuph/vibe-coding-apps/tree/main/techbook-swipe-extension",
+  "permissions": ["activeTab", "storage", "https://techbookfest.org/*"],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "スワイプモードを開始",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://techbookfest.org/event/*/market/*",
+        "https://techbookfest.org/product/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "strict_min_version": "79.0"
+    }
+  }
+}

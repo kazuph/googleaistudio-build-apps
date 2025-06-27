@@ -21,7 +21,9 @@ class TechbookSwipe {
       this.observePageChanges();
     }
     
-    chrome.runtime.onMessage.addListener((request) => {
+    // Use browser API for Firefox compatibility
+    const messageAPI = typeof browser !== 'undefined' ? browser : chrome;
+    messageAPI.runtime.onMessage.addListener((request) => {
       if (request.action === 'startSwipeMode') {
         this.startSwipeMode();
       } else if (request.action === 'showRatingInterface') {
@@ -33,12 +35,14 @@ class TechbookSwipe {
   }
 
   async loadSwipeHistory() {
-    const result = await chrome.storage.local.get(['swipeHistory']);
+    const storageAPI = typeof browser !== 'undefined' ? browser : chrome;
+    const result = await storageAPI.storage.local.get(['swipeHistory']);
     this.swipeHistory = result.swipeHistory || {};
   }
 
   async saveSwipeHistory() {
-    await chrome.storage.local.set({ swipeHistory: this.swipeHistory });
+    const storageAPI = typeof browser !== 'undefined' ? browser : chrome;
+    await storageAPI.storage.local.set({ swipeHistory: this.swipeHistory });
   }
 
   applySwipeHistoryToPage() {
@@ -77,7 +81,7 @@ class TechbookSwipe {
               // ハートアイコンを追加
               const heartIcon = document.createElement('span');
               heartIcon.className = 'techbook-heart-icon';
-              heartIcon.innerHTML = '❤️';
+              heartIcon.textContent = '❤️';
               heartIcon.style.cssText = 'position: absolute; top: 10px; right: 10px; font-size: 24px; z-index: 10;';
               bookCard.style.position = 'relative';
               bookCard.appendChild(heartIcon);
@@ -286,34 +290,87 @@ class TechbookSwipe {
   createSwipeUI() {
     this.swipeContainer = document.createElement('div');
     this.swipeContainer.className = 'techbook-swipe-container';
-    this.swipeContainer.innerHTML = `
-      <div class="swipe-overlay"></div>
-      <div class="swipe-modal">
-        <button class="swipe-close">✕</button>
-        <div class="swipe-header">
-          <span class="swipe-counter"></span>
-        </div>
-        <div class="swipe-card-container">
-          <div class="swipe-card">
-            <div class="swipe-card-image"></div>
-            <div class="swipe-card-content">
-              <h3 class="swipe-card-title"></h3>
-              <div class="swipe-card-description">
-                <div class="loading">詳細を読み込み中...</div>
-              </div>
-            </div>
-          </div>
-          <div class="swipe-indicators">
-            <div class="like-indicator">❤️ LIKE</div>
-            <div class="nope-indicator">✕ NOPE</div>
-          </div>
-        </div>
-        <div class="swipe-buttons">
-          <button class="swipe-button dislike-button">✕</button>
-          <button class="swipe-button like-button">❤️</button>
-        </div>
-      </div>
-    `;
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'swipe-overlay';
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'swipe-modal';
+    
+    // Create close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'swipe-close';
+    closeButton.textContent = '✕';
+    
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'swipe-header';
+    const counter = document.createElement('span');
+    counter.className = 'swipe-counter';
+    header.appendChild(counter);
+    
+    // Create card container
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'swipe-card-container';
+    
+    // Create card
+    const card = document.createElement('div');
+    card.className = 'swipe-card';
+    const cardImage = document.createElement('div');
+    cardImage.className = 'swipe-card-image';
+    const cardContent = document.createElement('div');
+    cardContent.className = 'swipe-card-content';
+    const cardTitle = document.createElement('h3');
+    cardTitle.className = 'swipe-card-title';
+    const cardDescription = document.createElement('div');
+    cardDescription.className = 'swipe-card-description';
+    const loading = document.createElement('div');
+    loading.className = 'loading';
+    loading.textContent = '詳細を読み込み中...';
+    cardDescription.appendChild(loading);
+    cardContent.appendChild(cardTitle);
+    cardContent.appendChild(cardDescription);
+    card.appendChild(cardImage);
+    card.appendChild(cardContent);
+    
+    // Create indicators
+    const indicators = document.createElement('div');
+    indicators.className = 'swipe-indicators';
+    const likeIndicator = document.createElement('div');
+    likeIndicator.className = 'like-indicator';
+    likeIndicator.textContent = '❤️ LIKE';
+    const nopeIndicator = document.createElement('div');
+    nopeIndicator.className = 'nope-indicator';
+    nopeIndicator.textContent = '✕ NOPE';
+    indicators.appendChild(likeIndicator);
+    indicators.appendChild(nopeIndicator);
+    
+    cardContainer.appendChild(card);
+    cardContainer.appendChild(indicators);
+    
+    // Create buttons
+    const buttons = document.createElement('div');
+    buttons.className = 'swipe-buttons';
+    const dislikeButton = document.createElement('button');
+    dislikeButton.className = 'swipe-button dislike-button';
+    dislikeButton.textContent = '✕';
+    const likeButton = document.createElement('button');
+    likeButton.className = 'swipe-button like-button';
+    likeButton.textContent = '❤️';
+    buttons.appendChild(dislikeButton);
+    buttons.appendChild(likeButton);
+    
+    // Assemble modal
+    modal.appendChild(closeButton);
+    modal.appendChild(header);
+    modal.appendChild(cardContainer);
+    modal.appendChild(buttons);
+    
+    // Assemble container
+    this.swipeContainer.appendChild(overlay);
+    this.swipeContainer.appendChild(modal);
     
     document.body.appendChild(this.swipeContainer);
     
@@ -437,7 +494,12 @@ class TechbookSwipe {
     this.swipeContainer.querySelector('.like-indicator').style.opacity = 0;
     this.swipeContainer.querySelector('.nope-indicator').style.opacity = 0;
     
-    descriptionElement.innerHTML = '<div class="loading">詳細を読み込み中...</div>';
+    // Clear and add loading message
+    descriptionElement.textContent = '';
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading';
+    loadingDiv.textContent = '詳細を読み込み中...';
+    descriptionElement.appendChild(loadingDiv);
     
     await this.loadBookDetails(book, descriptionElement);
   }
@@ -471,33 +533,61 @@ class TechbookSwipe {
         book.imageUrl = bookData.imageUrl; // Update the book object
       }
       
-      let content = '';
+      // Clear description element
+      descriptionElement.textContent = '';
       
       // 価格を表示
       const priceToShow = bookData.price || book.listPrice;
       if (priceToShow) {
-        content += '<div class="techbook-info">';
-        content += `<span class="techbook-price">${this.escapeHtml(priceToShow)}</span>`;
-        content += '</div>';
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'techbook-info';
+        const priceSpan = document.createElement('span');
+        priceSpan.className = 'techbook-price';
+        priceSpan.textContent = priceToShow;
+        infoDiv.appendChild(priceSpan);
+        descriptionElement.appendChild(infoDiv);
       }
       
       if (bookData.author) {
-        content += `<div class="author">著者: ${this.escapeHtml(bookData.author)}</div>`;
+        const authorDiv = document.createElement('div');
+        authorDiv.className = 'author';
+        authorDiv.textContent = `著者: ${bookData.author}`;
+        descriptionElement.appendChild(authorDiv);
       }
       
       if (bookData.description) {
-        content += `<div class="description">${this.parseMarkdown(bookData.description)}</div>`;
-      }
-      if (bookData.tags.length > 0) {
-        content += `<div class="tags">${bookData.tags.map(tag => 
-          `<span class="tag">${this.escapeHtml(tag)}</span>`
-        ).join('')}</div>`;
+        const descDiv = document.createElement('div');
+        descDiv.className = 'description';
+        this.renderMarkdown(descDiv, bookData.description);
+        descriptionElement.appendChild(descDiv);
       }
       
-      descriptionElement.innerHTML = content || '<div class="no-description">詳細情報がありません</div>';
+      if (bookData.tags.length > 0) {
+        const tagsDiv = document.createElement('div');
+        tagsDiv.className = 'tags';
+        bookData.tags.forEach(tag => {
+          const tagSpan = document.createElement('span');
+          tagSpan.className = 'tag';
+          tagSpan.textContent = tag;
+          tagsDiv.appendChild(tagSpan);
+        });
+        descriptionElement.appendChild(tagsDiv);
+      }
+      
+      // If no content was added, show no description message
+      if (descriptionElement.children.length === 0) {
+        const noDescDiv = document.createElement('div');
+        noDescDiv.className = 'no-description';
+        noDescDiv.textContent = '詳細情報がありません';
+        descriptionElement.appendChild(noDescDiv);
+      }
     } catch (error) {
       console.error('Failed to load book details:', error);
-      descriptionElement.innerHTML = '<div class="error">詳細情報を取得できませんでした</div>';
+      descriptionElement.textContent = '';
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error';
+      errorDiv.textContent = '詳細情報を取得できませんでした';
+      descriptionElement.appendChild(errorDiv);
     }
   }
 
@@ -699,13 +789,8 @@ class TechbookSwipe {
       // Store detailed book data for export
       await this.saveBookData(book);
       
-      setTimeout(() => {
-        // バックグラウンドで新しいタブを開く
-        chrome.runtime.sendMessage({
-          action: 'openInBackground',
-          url: book.href
-        });
-      }, 300);
+      // Show a toast notification with link
+      this.showToast(`❤️ いいねしました！`, book.title, book.href);
     } else {
       card.style.transform = 'translateX(-150%) rotate(-30deg)';
       this.swipeHistory[book.id] = 'dislike';
@@ -721,17 +806,43 @@ class TechbookSwipe {
 
   showComplete() {
     const modal = this.swipeContainer.querySelector('.swipe-modal');
-    modal.innerHTML = `
-      <button class="swipe-close">✕</button>
-      <div class="complete-message">
-        <h2>すべての書籍を確認しました！</h2>
-        <p>いいねした書籍: ${Object.values(this.swipeHistory).filter(s => s === 'like').length}冊</p>
-        <p>スキップした書籍: ${Object.values(this.swipeHistory).filter(s => s === 'dislike').length}冊</p>
-        <p class="complete-note">履歴のリセットは拡張機能のポップアップから行えます</p>
-      </div>
-    `;
+    // Clear modal content
+    modal.textContent = '';
     
-    this.swipeContainer.querySelector('.swipe-close').addEventListener('click', () => this.closeSwipeMode());
+    // Create close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'swipe-close';
+    closeButton.textContent = '✕';
+    modal.appendChild(closeButton);
+    
+    // Create complete message container
+    const completeMessage = document.createElement('div');
+    completeMessage.className = 'complete-message';
+    
+    // Create heading
+    const heading = document.createElement('h2');
+    heading.textContent = 'すべての書籍を確認しました！';
+    completeMessage.appendChild(heading);
+    
+    // Create liked count paragraph
+    const likedP = document.createElement('p');
+    likedP.textContent = `いいねした書籍: ${Object.values(this.swipeHistory).filter(s => s === 'like').length}冊`;
+    completeMessage.appendChild(likedP);
+    
+    // Create disliked count paragraph
+    const dislikedP = document.createElement('p');
+    dislikedP.textContent = `スキップした書籍: ${Object.values(this.swipeHistory).filter(s => s === 'dislike').length}冊`;
+    completeMessage.appendChild(dislikedP);
+    
+    // Create note paragraph
+    const noteP = document.createElement('p');
+    noteP.className = 'complete-note';
+    noteP.textContent = '履歴のリセットは拡張機能のポップアップから行えます';
+    completeMessage.appendChild(noteP);
+    
+    modal.appendChild(completeMessage);
+    
+    closeButton.addEventListener('click', () => this.closeSwipeMode());
   }
 
   closeSwipeMode() {
@@ -761,6 +872,93 @@ class TechbookSwipe {
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     
     return html;
+  }
+
+  renderMarkdown(element, text) {
+    if (!text) return;
+    
+    // Process markdown text and create DOM elements
+    const lines = text.split('\n');
+    
+    lines.forEach((line, index) => {
+      if (!line && index > 0) {
+        element.appendChild(document.createElement('br'));
+        return;
+      }
+      
+      // Process inline markdown
+      const processInline = (text) => {
+        const fragments = [];
+        let lastIndex = 0;
+        
+        // Simple regex patterns for inline markdown
+        const patterns = [
+          { regex: /\*\*([^*]+)\*\*/g, tag: 'strong' },
+          { regex: /__([^_]+)__/g, tag: 'strong' },
+          { regex: /\*([^*]+)\*/g, tag: 'em' },
+          { regex: /(?<!_)_([^_]+)_(?!_)/g, tag: 'em' },
+          { regex: /`([^`]+)`/g, tag: 'code' },
+          { regex: /\[([^\]]+)\]\(([^)]+)\)/g, tag: 'a' }
+        ];
+        
+        // Convert to array of fragments
+        const allMatches = [];
+        patterns.forEach(pattern => {
+          const regex = new RegExp(pattern.regex);
+          let match;
+          while ((match = regex.exec(text)) !== null) {
+            allMatches.push({
+              start: match.index,
+              end: match.index + match[0].length,
+              tag: pattern.tag,
+              content: match[1],
+              href: pattern.tag === 'a' ? match[2] : null
+            });
+          }
+        });
+        
+        // Sort matches by position
+        allMatches.sort((a, b) => a.start - b.start);
+        
+        // Build fragments
+        allMatches.forEach(match => {
+          if (match.start > lastIndex) {
+            fragments.push({ type: 'text', content: text.slice(lastIndex, match.start) });
+          }
+          fragments.push(match);
+          lastIndex = match.end;
+        });
+        
+        if (lastIndex < text.length) {
+          fragments.push({ type: 'text', content: text.slice(lastIndex) });
+        }
+        
+        return fragments;
+      };
+      
+      const fragments = processInline(line);
+      
+      if (fragments.length === 0) return;
+      
+      fragments.forEach(fragment => {
+        if (fragment.type === 'text') {
+          element.appendChild(document.createTextNode(fragment.content));
+        } else {
+          const el = document.createElement(fragment.tag);
+          if (fragment.tag === 'a') {
+            el.href = fragment.href;
+            el.target = '_blank';
+            el.rel = 'noopener noreferrer';
+          }
+          el.textContent = fragment.content;
+          element.appendChild(el);
+        }
+      });
+      
+      if (index < lines.length - 1) {
+        element.appendChild(document.createElement('br'));
+      }
+    });
   }
 
   async saveBookData(book) {
@@ -843,25 +1041,63 @@ class TechbookSwipe {
     // Create rating modal
     const modal = document.createElement('div');
     modal.className = 'techbook-rating-modal';
-    modal.innerHTML = `
-      <div class="rating-overlay"></div>
-      <div class="rating-modal-content">
-        <button class="rating-close">✕</button>
-        <h2>この書籍を評価</h2>
-        <div class="current-rating">
-          ${currentStatus ? `現在の評価: ${currentStatus === 'like' ? '❤️ いいね' : '❌'}` : '未評価'}
-        </div>
-        <div class="rating-buttons">
-          <button class="rating-button like-btn ${currentStatus === 'like' ? 'active' : ''}">
-            ❤️ いいね
-          </button>
-          <button class="rating-button dislike-btn ${currentStatus === 'dislike' ? 'active' : ''}">
-            ❌
-          </button>
-          ${currentStatus ? '<button class="rating-button remove-btn">🗑️ 評価を削除</button>' : ''}
-        </div>
-      </div>
-    `;
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'rating-overlay';
+    modal.appendChild(overlay);
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'rating-modal-content';
+    
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'rating-close';
+    closeBtn.textContent = '✕';
+    modalContent.appendChild(closeBtn);
+    
+    // Create heading
+    const h2 = document.createElement('h2');
+    h2.textContent = 'この書籍を評価';
+    modalContent.appendChild(h2);
+    
+    // Create current rating div
+    const currentRatingDiv = document.createElement('div');
+    currentRatingDiv.className = 'current-rating';
+    if (currentStatus) {
+      currentRatingDiv.textContent = `現在の評価: ${currentStatus === 'like' ? '❤️ いいね' : '❌'}`;
+    } else {
+      currentRatingDiv.textContent = '未評価';
+    }
+    modalContent.appendChild(currentRatingDiv);
+    
+    // Create rating buttons container
+    const ratingButtons = document.createElement('div');
+    ratingButtons.className = 'rating-buttons';
+    
+    // Create like button
+    const likeBtn = document.createElement('button');
+    likeBtn.className = `rating-button like-btn ${currentStatus === 'like' ? 'active' : ''}`;
+    likeBtn.textContent = '❤️ いいね';
+    ratingButtons.appendChild(likeBtn);
+    
+    // Create dislike button
+    const dislikeBtn = document.createElement('button');
+    dislikeBtn.className = `rating-button dislike-btn ${currentStatus === 'dislike' ? 'active' : ''}`;
+    dislikeBtn.textContent = '❌';
+    ratingButtons.appendChild(dislikeBtn);
+    
+    // Create remove button if there's a current status
+    if (currentStatus) {
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'rating-button remove-btn';
+      removeBtn.textContent = '🗑️ 評価を削除';
+      ratingButtons.appendChild(removeBtn);
+    }
+    
+    modalContent.appendChild(ratingButtons);
+    modal.appendChild(modalContent);
 
     // Add styles
     const style = document.createElement('style');
@@ -979,11 +1215,11 @@ class TechbookSwipe {
     document.body.appendChild(modal);
 
     // Event listeners
-    const closeBtn = modal.querySelector('.rating-close');
-    const overlay = modal.querySelector('.rating-overlay');
-    const likeBtn = modal.querySelector('.like-btn');
-    const dislikeBtn = modal.querySelector('.dislike-btn');
-    const removeBtn = modal.querySelector('.remove-btn');
+    const ratingCloseBtn = modal.querySelector('.rating-close');
+    const ratingOverlay = modal.querySelector('.rating-overlay');
+    const ratingLikeBtn = modal.querySelector('.like-btn');
+    const ratingDislikeBtn = modal.querySelector('.dislike-btn');
+    const ratingRemoveBtn = modal.querySelector('.remove-btn');
 
     const closeModal = () => {
       modal.remove();
@@ -996,25 +1232,136 @@ class TechbookSwipe {
       this.applyProductPageRating();
     };
 
-    closeBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', closeModal);
+    ratingCloseBtn.addEventListener('click', closeModal);
+    ratingOverlay.addEventListener('click', closeModal);
 
-    likeBtn.addEventListener('click', async () => {
+    ratingLikeBtn.addEventListener('click', async () => {
       await this.updateBookRating(bookId, 'like');
       closeModal();
     });
 
-    dislikeBtn.addEventListener('click', async () => {
+    ratingDislikeBtn.addEventListener('click', async () => {
       await this.updateBookRating(bookId, 'dislike');
       closeModal();
     });
 
-    if (removeBtn) {
-      removeBtn.addEventListener('click', async () => {
+    if (ratingRemoveBtn) {
+      ratingRemoveBtn.addEventListener('click', async () => {
         await this.updateBookRating(bookId, null);
         closeModal();
       });
     }
+  }
+
+  showToast(message, bookTitle, bookUrl) {
+    // Remove any existing toast
+    const existingToast = document.querySelector('.techbook-toast');
+    if (existingToast) {
+      existingToast.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'techbook-toast';
+    
+    // Create toast content container
+    const toastContent = document.createElement('div');
+    toastContent.className = 'toast-content';
+    
+    // Create message div
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'toast-message';
+    messageDiv.textContent = message;
+    toastContent.appendChild(messageDiv);
+    
+    // Create book title div
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'toast-book-title';
+    titleDiv.textContent = bookTitle;
+    toastContent.appendChild(titleDiv);
+    
+    // Create link
+    const link = document.createElement('a');
+    link.href = bookUrl;
+    link.className = 'toast-link';
+    link.target = '_blank';
+    link.textContent = '詳細を見る →';
+    toastContent.appendChild(link);
+    
+    toast.appendChild(toastContent);
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      .techbook-toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        animation: slideUp 0.3s ease-out;
+        max-width: 90%;
+        width: 350px;
+      }
+      
+      @keyframes slideUp {
+        from {
+          transform: translateX(-50%) translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+      }
+      
+      .toast-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .toast-message {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      
+      .toast-book-title {
+        font-size: 14px;
+        opacity: 0.8;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .toast-link {
+        color: #ff69b4;
+        text-decoration: none;
+        font-size: 14px;
+        margin-top: 4px;
+        display: inline-block;
+      }
+      
+      .toast-link:hover {
+        text-decoration: underline;
+      }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideDown 0.3s ease-out';
+      toast.style.animationFillMode = 'forwards';
+      setTimeout(() => {
+        toast.remove();
+        style.remove();
+      }, 300);
+    }, 5000);
   }
 
   async updateBookRating(bookId, rating) {

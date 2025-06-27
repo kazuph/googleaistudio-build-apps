@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "技術書スワイパー",
+  "version": "1.0",
+  "description": "技術書をスワイプUIで効率的に閲覧する拡張機能（現在は技術書典に対応）",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "スワイプモードを開始",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://techbookfest.org/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://techbookfest.org/event/*/market/*", "https://techbookfest.org/product/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ]
+}

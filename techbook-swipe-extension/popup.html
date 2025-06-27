@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>技術書典Tinderスワイプ</title>
+  <title>技術書スワイパー</title>
   <style>
     body {
       width: 400px;
@@ -252,7 +252,7 @@
   </style>
 </head>
 <body>
-  <h2>技術書典Tinderスワイプ</h2>
+  <h2>技術書スワイパー</h2>
   
   <div id="not-techbook" class="not-techbook" style="display: none;">
     <p>この拡張機能は技術書典の<br>書籍一覧ページでのみ動作します。</p>
@@ -285,13 +285,14 @@
     </div>
     
     <div class="button-container">
-      <button id="start-swipe" class="start-button">Tinderモードを開始</button>
+      <button id="start-swipe" class="start-button">スワイプモードを開始</button>
       <button id="reset-history" class="reset-button">履歴をリセット</button>
     </div>
     
     <div id="message" class="message" style="display: none;"></div>
   </div>
   
+  <script src="browser-polyfill.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
