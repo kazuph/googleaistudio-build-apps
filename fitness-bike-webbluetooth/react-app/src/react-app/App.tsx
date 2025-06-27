@@ -51,9 +51,15 @@ function App() {
   }, []);
 
   const handleConnect = useCallback(async () => {
-    const connected = await connect();
-    return connected;
-  }, [connect]);
+    const result = await connect();
+    if (result && typeof result === 'object' && result.success && result.server) {
+      // 接続後すぐにモニタリングを開始
+      resetSession();
+      const started = await startMonitoring(result.server);
+      return started;
+    }
+    return false;
+  }, [connect, startMonitoring, resetSession]);
 
   const handleDisconnect = useCallback(async () => {
     if (bluetoothState.isMonitoring) {

@@ -37,6 +37,8 @@ export const useBluetooth = () => {
     let offset = 2;
     const data: BikeServiceData = {};
 
+    console.log('🔍 Indoor Bike Data flags:', flags.toString(16), 'length:', dataView.byteLength);
+
     if (flags & 0x01) {
       data.speed = (dataView.getUint16(offset, true) / 100);
       offset += 2;
@@ -69,6 +71,7 @@ export const useBluetooth = () => {
       offset += 2;
     }
 
+    console.log('🔍 Parsed data:', data);
     return data;
   }, []);
 
@@ -162,16 +165,18 @@ export const useBluetooth = () => {
         log('⚠️ 制御ポイントは利用できません');
       }
 
-      return true;
+      return { success: true, server };
     } catch (error) {
       log(`❌ 接続エラー: ${error}`);
       setConnectionStatus('error');
-      return false;
+      return { success: false, server: null };
     }
   }, [log]);
 
-  const startMonitoring = useCallback(async () => {
-    if (!bluetoothState.server || !bluetoothState.isConnected) {
+  const startMonitoring = useCallback(async (server?: BluetoothRemoteGATTServer) => {
+    const targetServer = server || bluetoothState.server;
+    
+    if (!targetServer || !targetServer.connected) {
       log('❌ デバイスが接続されていません');
       return false;
     }
@@ -189,7 +194,7 @@ export const useBluetooth = () => {
 
       for (const serviceInfo of services) {
         try {
-          const service = await bluetoothState.server.getPrimaryService(serviceInfo.uuid);
+          const service = await targetServer.getPrimaryService(serviceInfo.uuid);
           const characteristic = await service.getCharacteristic(serviceInfo.characteristic);
           
           await characteristic.startNotifications();
@@ -199,6 +204,7 @@ export const useBluetooth = () => {
             const dataView = target.value;
             if (dataView) {
               const data = serviceInfo.parser(dataView);
+              log(`📈 ${serviceInfo.name}データ受信: ${JSON.stringify(data)}`);
               setCurrentData(prev => ({ ...prev, ...data }));
             }
           });
@@ -216,7 +222,7 @@ export const useBluetooth = () => {
       setBluetoothState(prev => ({ ...prev, isMonitoring: false }));
       return false;
     }
-  }, [bluetoothState.server, bluetoothState.isConnected, log, parseIndoorBikeData, parseCyclingPowerData, parseCSCData]);
+  }, [bluetoothState.server, log, parseIndoorBikeData, parseCyclingPowerData, parseCSCData]);
 
   const stopMonitoring = useCallback(() => {
     if (monitoringIntervalRef.current) {
