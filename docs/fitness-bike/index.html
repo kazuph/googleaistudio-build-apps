@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚴‍♂️ Fitness Bike Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .settings-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .status.connected {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .status.disconnected {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+        
+        .connection-control {
+            display: none;
+        }
+        
+        .toggle-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .toggle-btn.connected {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .main-dashboard {
+            display: block;
+            margin: 20px 0;
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .data-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .metric-unit {
+            font-size: 0.8em;
+            opacity: 0.9;
+        }
+        
+        /* パワーバー */
+        .power-bar-section {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            margin: 20px 0;
+        }
+        
+        .power-bar-label {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .power-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .power-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #f44336);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        /* 負荷調整 */
+        .resistance-panel {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            margin: 20px 0;
+        }
+        
+        .resistance-display {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .resistance-level {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .quick-controls {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .quick-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .quick-btn:active {
+            background: rgba(255,255,255,0.4);
+            transform: translateY(0px);
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: block;
+        }
+        
+        .chart-canvas {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .btn-small {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* デバッグパネル */
+        .debug-panel {
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            color: white;
+            display: none;
+        }
+        
+        .debug-panel.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .debug-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #3a3a3a;
+            border-radius: 10px;
+        }
+        
+        .debug-title {
+            color: #00ffff;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .debug-data {
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            color: #00ff00;
+            white-space: pre-wrap;
+        }
+        
+        /* ログ */
+        .log-panel {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            display: none;
+        }
+        
+        .log-panel.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .log-content {
+            height: 300px;
+            overflow-y: auto;
+            background: #000;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            color: #00ff00;
+            line-height: 1.5;
+        }
+        
+        .log-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .log-content::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+        
+        .log-content::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        
+        /* 設定パネル */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 350px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: -5px 0 20px rgba(0,0,0,0.2);
+            padding: 30px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .settings-panel.show {
+            transform: translateX(0);
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .settings-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .settings-section {
+            margin-bottom: 30px;
+        }
+        
+        .settings-section h3 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stats-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stats-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .reset-section {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .reset-warning {
+            color: #d84315;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+        
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+        
+        /* モーダルオーバーレイ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #d84315;
+            margin-bottom: 15px;
+        }
+        
+        .modal-text {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-btn.cancel {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .modal-btn.cancel:hover {
+            background: #d0d0d0;
+        }
+        
+        .modal-btn.confirm {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+        
+        .modal-btn.confirm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚴‍♂️ Fitness Bike Controller</h1>
+            <button id="settingsBtn" class="settings-btn">⚙️</button>
+        </div>
+        
+        <div id="status" class="status disconnected">
+            未接続 - バイクの電源を入れて「接続」ボタンを押してください
+            <button id="connectionToggle" class="toggle-btn" style="margin-left: 15px;">🔗 接続</button>
+        </div>
+
+        <div class="main-dashboard">
+            <!-- データグリッド -->
+            <div class="data-grid">
+                <div class="metric-card" id="speedCadenceCard" onclick="bikeController.toggleSpeedCadenceDisplay()" style="cursor: pointer;">
+                    <div class="metric-label" id="speedCadenceLabel">速度</div>
+                    <div class="metric-value">
+                        <span id="speedCadenceValue">0</span><span class="metric-unit" id="speedCadenceUnit">km/h</span>
+                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 2px;">
+                            MAX: <span id="speedCadenceMax">0</span><span id="speedCadenceMaxUnit">km/h</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">消費カロリー</div>
+                    <div class="metric-value">
+                        <span id="calories">0</span><span class="metric-unit">kcal</span>
+                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 2px;">
+                            推定値
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">パワー</div>
+                    <div class="metric-value">
+                        <span id="powerValue">0</span><span class="metric-unit">W</span>
+                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 2px;">
+                            MAX: <span id="maxPower">0</span>W
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">セッション距離</div>
+                    <div class="metric-value"><span id="distance">0</span><span class="metric-unit" id="distanceUnit">m</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">総距離</div>
+                    <div class="metric-value"><span id="totalDistance">0</span><span class="metric-unit">km</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">時間</div>
+                    <div class="metric-value"><span id="duration">00:00</span><span class="metric-unit"></span></div>
+                </div>
+            </div>
+            
+            <!-- パワーバー表示 -->
+            <div class="power-bar-section">
+                <div class="power-bar-label">💪 Power Output</div>
+                <div class="power-bar">
+                    <div class="power-bar-fill" id="powerBarFill">0W</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 負荷調整パネル -->
+        <div id="resistancePanel" class="resistance-panel">
+            <h3>🔧 負荷調整 (Resistance Control)</h3>
+            <div class="resistance-display">
+                <div class="resistance-level">レベル <span id="resistanceLevel">1</span> / 最大80</div>
+            </div>
+            <div class="quick-controls">
+                <button class="quick-btn" onclick="setResistance(10)">軽い<br>10</button>
+                <button class="quick-btn" onclick="setResistance(20)">普通<br>20</button>
+                <button class="quick-btn" onclick="setResistance(30)">中<br>30</button>
+                <button class="quick-btn" onclick="setResistance(40)">重い<br>40</button>
+                <button class="quick-btn" onclick="setResistance(60)">きつい<br>60</button>
+                <button class="quick-btn" onclick="setResistance(80)">最高<br>80</button>
+            </div>
+        </div>
+
+        <!-- グラフ表示パネル -->
+        <div id="chartPanel" class="chart-container">
+            <h3>📈 ワークアウトグラフ</h3>
+            <canvas id="workoutChart" class="chart-canvas"></canvas>
+        </div>
+
+        <!-- デバッグパネル -->
+        <div class="debug-panel" id="debugPanel">
+            <h3 style="color: #ffff00; margin-bottom: 15px;">🔍 デバッグ情報</h3>
+            
+            <div class="debug-section">
+                <div class="debug-title">📊 最新のIndoor Bike Data</div>
+                <div id="debugIndoorBike" class="debug-data">データなし</div>
+            </div>
+            
+            <div class="debug-section">
+                <div class="debug-title">⚡ 最新のCycling Power Data</div>
+                <div id="debugCyclingPower" class="debug-data">データなし</div>
+            </div>
+            
+            <div class="debug-section">
+                <div class="debug-title">🚀 最新のSpeed & Cadence Data</div>
+                <div id="debugCSC" class="debug-data">データなし</div>
+            </div>
+            
+            <div class="debug-section">
+                <div class="debug-title">🔧 制御コマンド送信状況</div>
+                <div id="debugControl" class="debug-data">コマンドなし</div>
+            </div>
+        </div>
+
+        <!-- ログパネル -->
+        <div class="log-panel" id="logPanel">
+            <h3 style="color: white; margin-bottom: 15px;">📊 システムログ</h3>
+            <div id="log" class="log-content"></div>
+        </div>
+    </div>
+
+    <!-- 設定パネル -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <div class="settings-title">⚙️ 設定</div>
+            <button class="close-btn" id="closeSettingsBtn">✕</button>
+        </div>
+        
+        <div class="settings-section">
+            <h3>📊 運動統計</h3>
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="stats-value" id="totalDistanceStats">0</div>
+                    <div class="stats-label">総距離 (km)</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-value" id="totalSessionsStats">0</div>
+                    <div class="stats-label">総セッション数</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-value" id="todayDistanceStats">0</div>
+                    <div class="stats-label">今日の距離 (km)</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-value" id="thisMonthStats">0</div>
+                    <div class="stats-label">今月の距離 (km)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>📅 最近の記録</h3>
+            <div id="recentRecords"></div>
+        </div>
+        
+        <div class="settings-section">
+            <div class="reset-section">
+                <h3>🗑️ データリセット</h3>
+                <div class="reset-warning">
+                    ⚠️ 注意: この操作は元に戻せません
+                </div>
+                <p style="margin-bottom: 20px; color: #666;">
+                    すべての運動記録（総距離、日別記録など）が完全に削除されます。
+                </p>
+                <button class="reset-btn" id="resetDataBtn">
+                    🗑️ すべてのデータをリセット
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- リセット確認モーダル -->
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal-content">
+            <div class="modal-title">⚠️ データリセットの確認</div>
+            <div class="modal-text">
+                本当にすべての運動記録を削除しますか？<br>
+                この操作は元に戻すことができません。<br><br>
+                削除されるデータ：<br>
+                • 総距離記録<br>
+                • 日別運動記録<br>
+                • 月別統計<br>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelResetBtn">キャンセル</button>
+                <button class="modal-btn confirm" id="confirmResetBtn">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FitnessBikeController {
+            constructor() {
+                this.device = null;
+                this.server = null;
+                this.isMonitoring = false;
+                this.sessionDistance = 0;
+                this.lastSpeed = 0;
+                this.distanceCalculationEnabled = false;
+                this.lastDistanceUpdateTime = null;
+                this.lastTotalDistanceUpdate = 0;
+                this.currentResistance = 1;
+                
+                // セッション最大値記録
+                this.sessionMaxSpeed = 0;
+                this.sessionMaxCadence = 0;
+                this.sessionMaxPower = 0;
+                this.lastCadence = 0;
+                this.startTime = null;
+                this.lastResistanceCommand = 0;
+                this.resistanceThrottle = 2000;
+                this.controlPoint = null;
+                this.debugVisible = false;
+                this.chartVisible = true;
+                this.isConnected = false;
+                this.settingsVisible = false;
+                
+                // 累積データ管理
+                this.workoutStorage = {
+                    totalDistance: 0,
+                    dailyRecords: {},
+                    monthlyTotals: {}
+                };
+                
+                this.loadStoredData();
+                
+                // 速度の時間平均用（より反応を早く）
+                this.speedHistory = [];
+                this.speedHistoryMaxLength = 2; // 3から2に短縮
+                this.speedDecayTime = 3000; // 3秒で0に向かう
+                this.lastSpeedUpdateTime = Date.now();
+                
+                // ユーザー設定
+                this.userSettings = {
+                    gender: 'male', // male, female
+                    age: 30,
+                    weight: 70, // kg
+                    height: 170 // cm
+                };
+                this.loadUserSettings();
+                
+                // カロリー計算用
+                this.sessionCalories = 0;
+                this.lastCalorieUpdateTime = Date.now();
+                
+                // 表示モード（速度⇔ケイデンス切り替え用）
+                this.speedDisplayMode = 'speed'; // 'speed' or 'cadence'
+                
+                this.workoutData = {
+                    time: [],
+                    speed: [],
+                    power: [],
+                    cadence: [],
+                    distance: []
+                };
+                this.dataPoints = 0;
+                this.maxDataPoints = 300;
+                
+                // Bluetooth Services
+                this.services = {
+                    FITNESS_MACHINE: '00001826-0000-1000-8000-00805f9b34fb',
+                    CYCLING_POWER: '00001818-0000-1000-8000-00805f9b34fb',
+                    CYCLING_SPEED_CADENCE: '00001816-0000-1000-8000-00805f9b34fb'
+                };
+                
+                // Characteristics
+                this.characteristics = {
+                    FITNESS_MACHINE_FEATURE: '00002acc-0000-1000-8000-00805f9b34fb',
+                    INDOOR_BIKE_DATA: '00002ad2-0000-1000-8000-00805f9b34fb',
+                    FITNESS_MACHINE_CONTROL_POINT: '00002ad9-0000-1000-8000-00805f9b34fb',
+                    CYCLING_POWER_MEASUREMENT: '00002a63-0000-1000-8000-00805f9b34fb',
+                    CSC_MEASUREMENT: '00002a5b-0000-1000-8000-00805f9b34fb'
+                };
+                
+                this.initializeEventListeners();
+                this.updateDuration();
+                this.updateTotalDistanceDisplay();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('connectionToggle').addEventListener('click', () => this.toggleConnection());
+                document.getElementById('settingsBtn').addEventListener('click', () => this.toggleSettings());
+                // グラフ非表示ボタンは削除済み
+                
+                // 設定パネルのイベント
+                document.getElementById('closeSettingsBtn').addEventListener('click', () => this.toggleSettings());
+                document.getElementById('resetDataBtn').addEventListener('click', () => this.showResetModal());
+                document.getElementById('cancelResetBtn').addEventListener('click', () => this.hideResetModal());
+                document.getElementById('confirmResetBtn').addEventListener('click', () => this.confirmResetData());
+                
+                // resistanceSlider は削除済みのため、イベントリスナーも削除
+            }
+            
+            loadStoredData() {
+                try {
+                    const stored = localStorage.getItem('fitnessWorkoutData');
+                    if (stored) {
+                        this.workoutStorage = JSON.parse(stored);
+                        this.log('📂 保存されたワークアウトデータを読み込みました');
+                    } else {
+                        this.saveStoredData(); // 初期データを保存
+                    }
+                } catch (error) {
+                    this.log(`❌ データ読み込みエラー: ${error.message}`);
+                    this.workoutStorage = { totalDistance: 0, dailyRecords: {}, monthlyTotals: {} };
+                }
+            }
+            
+            loadUserSettings() {
+                try {
+                    const stored = localStorage.getItem('fitnessUserSettings');
+                    if (stored) {
+                        this.userSettings = { ...this.userSettings, ...JSON.parse(stored) };
+                        this.log('👤 ユーザー設定を読み込みました');
+                    }
+                } catch (error) {
+                    this.log(`⚠️ ユーザー設定読み込みエラー: ${error.message}`);
+                }
+            }
+            
+            saveUserSettings() {
+                try {
+                    localStorage.setItem('fitnessUserSettings', JSON.stringify(this.userSettings));
+                } catch (error) {
+                    this.log(`⚠️ ユーザー設定保存エラー: ${error.message}`);
+                }
+            }
+            
+            toggleSpeedCadenceDisplay() {
+                this.speedDisplayMode = this.speedDisplayMode === 'speed' ? 'cadence' : 'speed';
+                this.log(`🔄 表示モード切り替え: ${this.speedDisplayMode}`);
+                
+                // 現在の値で表示を更新
+                const labelElem = document.getElementById('speedCadenceLabel');
+                const maxElem = document.getElementById('speedCadenceMax');
+                const maxUnitElem = document.getElementById('speedCadenceMaxUnit');
+                const unitElem = document.getElementById('speedCadenceUnit');
+                
+                if (this.speedDisplayMode === 'speed') {
+                    if (labelElem) labelElem.textContent = '速度';
+                    if (unitElem) unitElem.textContent = 'km/h';
+                    if (maxElem) maxElem.textContent = this.sessionMaxSpeed.toFixed(1);
+                    if (maxUnitElem) maxUnitElem.textContent = 'km/h';
+                } else {
+                    if (labelElem) labelElem.textContent = 'ケイデンス';
+                    if (unitElem) unitElem.textContent = 'rpm';
+                    if (maxElem) maxElem.textContent = this.sessionMaxCadence.toFixed(0);
+                    if (maxUnitElem) maxUnitElem.textContent = 'rpm';
+                }
+            }
+            
+            updateSpeedCadenceDisplay(speed, cadence) {
+                const valueElem = document.getElementById('speedCadenceValue');
+                
+                if (this.speedDisplayMode === 'speed') {
+                    if (valueElem && speed !== undefined) {
+                        valueElem.textContent = speed.toFixed(1);
+                    }
+                } else {
+                    if (valueElem && cadence !== undefined) {
+                        valueElem.textContent = cadence.toFixed(0);
+                    }
+                }
+            }
+            
+            updateCalories(speed, cadence) {
+                const now = Date.now();
+                const timeDiffSeconds = (now - this.lastCalorieUpdateTime) / 1000;
+                
+                // 5秒未満または1分以上は異常値としてスキップ
+                if (timeDiffSeconds < 5 || timeDiffSeconds > 60) {
+                    this.lastCalorieUpdateTime = now;
+                    return;
+                }
+                
+                const timeDiffHours = timeDiffSeconds / 3600; // 秒を時間に変換
+                
+                // METsを計算（簡易式）
+                let mets = 1.0; // 基礎代謝
+                if (speed > 0) {
+                    if (speed < 16) mets = 4.0;      // 軽い運動
+                    else if (speed < 20) mets = 6.8;  // 中程度
+                    else if (speed < 24) mets = 8.5;  // 強い運動
+                    else mets = 12.0;                 // 非常に強い運動
+                    
+                    // ケイデンスによる調整
+                    if (cadence > 90) mets *= 1.2;
+                    else if (cadence > 70) mets *= 1.1;
+                }
+                
+                // カロリー計算: METs × 体重(kg) × 時間(h)
+                const caloriesBurned = mets * this.userSettings.weight * timeDiffHours;
+                this.sessionCalories += caloriesBurned;
+                
+                const caloriesElem = document.getElementById('calories');
+                if (caloriesElem) caloriesElem.textContent = Math.round(this.sessionCalories);
+                
+                this.lastCalorieUpdateTime = now;
+            }
+            
+            saveStoredData() {
+                try {
+                    localStorage.setItem('fitnessWorkoutData', JSON.stringify(this.workoutStorage));
+                } catch (error) {
+                    this.log(`❌ データ保存エラー: ${error.message}`);
+                }
+            }
+            
+            updateTotalDistanceDisplay() {
+                const totalKm = (this.workoutStorage.totalDistance / 1000).toFixed(1);
+                document.getElementById('totalDistance').textContent = totalKm;
+            }
+            
+            calculateDistanceFromSpeed(speed) {
+                // 速度から距離を計算（積分）
+                const now = Date.now();
+                if (this.lastDistanceUpdateTime && speed > 0) {
+                    const timeElapsedSeconds = (now - this.lastDistanceUpdateTime) / 1000;
+                    const speedMs = speed / 3.6; // km/h to m/s
+                    const distanceIncrement = speedMs * timeElapsedSeconds;
+                    
+                    if (distanceIncrement > 0 && distanceIncrement < 100) { // 妥当な範囲の増分のみ追加
+                        this.sessionDistance += distanceIncrement;
+                        document.getElementById('distance').textContent = Math.round(this.sessionDistance);
+                        document.getElementById('distanceUnit').textContent = 'm';
+                        
+                        // リアルタイムで総距離を更新（50m増加ごと）
+                        this.updateTotalDistanceRealtime();
+                    }
+                }
+                this.lastDistanceUpdateTime = now;
+            }
+            
+            updateTotalDistanceRealtime() {
+                // セッション距離が前回の更新から50m以上増加した場合、総距離を更新
+                const increment = this.sessionDistance - this.lastTotalDistanceUpdate;
+                if (increment >= 50) {
+                    this.addDistanceToTotal(increment);
+                    this.lastTotalDistanceUpdate = this.sessionDistance;
+                    this.log(`📊 リアルタイム総距離更新: +${increment.toFixed(0)}m`);
+                }
+            }
+            
+            updateSessionMax(type, value) {
+                let updated = false;
+                
+                switch(type) {
+                    case 'speed':
+                        if (value > this.sessionMaxSpeed) {
+                            this.sessionMaxSpeed = value;
+                            const elem = document.getElementById('maxSpeed');
+                            if (elem) elem.textContent = value.toFixed(1);
+                            updated = true;
+                        }
+                        break;
+                    case 'cadence':
+                        if (value > this.sessionMaxCadence) {
+                            this.sessionMaxCadence = value;
+                            const elem = document.getElementById('maxCadence');
+                            if (elem) elem.textContent = value.toFixed(0);
+                            updated = true;
+                        }
+                        break;
+                    case 'power':
+                        if (value > this.sessionMaxPower) {
+                            this.sessionMaxPower = value;
+                            const elem = document.getElementById('maxPower');
+                            if (elem) elem.textContent = value.toFixed(0);
+                            updated = true;
+                        }
+                        break;
+                }
+                
+                if (updated) {
+                    this.log(`🏆 新記録更新: ${type} = ${value.toFixed(type === 'speed' ? 1 : 0)}`);
+                }
+            }
+            
+            addDistanceToTotal(sessionDistanceMeters) {
+                if (sessionDistanceMeters > 0) {
+                    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+                    
+                    // 総距離に追加
+                    this.workoutStorage.totalDistance += sessionDistanceMeters;
+                    
+                    // 日別記録を更新
+                    if (!this.workoutStorage.dailyRecords[today]) {
+                        this.workoutStorage.dailyRecords[today] = {
+                            distance: 0,
+                            duration: 0,
+                            sessions: 0
+                        };
+                    }
+                    
+                    this.workoutStorage.dailyRecords[today].distance += sessionDistanceMeters;
+                    this.workoutStorage.dailyRecords[today].sessions += 1;
+                    
+                    // 月別合計を更新
+                    const monthKey = today.substring(0, 7); // YYYY-MM format
+                    if (!this.workoutStorage.monthlyTotals[monthKey]) {
+                        this.workoutStorage.monthlyTotals[monthKey] = 0;
+                    }
+                    this.workoutStorage.monthlyTotals[monthKey] += sessionDistanceMeters;
+                    
+                    this.saveStoredData();
+                    this.updateTotalDistanceDisplay();
+                    
+                    this.log(`📊 総距離更新: +${sessionDistanceMeters}m (総計: ${(this.workoutStorage.totalDistance/1000).toFixed(1)}km)`);
+                }
+            }
+            
+            getTodaysWorkout() {
+                const today = new Date().toISOString().split('T')[0];
+                return this.workoutStorage.dailyRecords[today] || { distance: 0, duration: 0, sessions: 0 };
+            }
+            
+            getMonthlyTotal(yearMonth) {
+                return this.workoutStorage.monthlyTotals[yearMonth] || 0;
+            }
+            
+            toggleSettings() {
+                this.settingsVisible = !this.settingsVisible;
+                
+                const settingsPanel = document.getElementById('settingsPanel');
+                
+                if (this.settingsVisible) {
+                    this.updateSettingsDisplay();
+                    settingsPanel.classList.add('show');
+                    this.log('⚙️ 設定画面を表示');
+                } else {
+                    settingsPanel.classList.remove('show');
+                    this.log('⚙️ 設定画面を非表示');
+                }
+            }
+            
+            updateSettingsDisplay() {
+                // 統計データを更新
+                const totalKm = (this.workoutStorage.totalDistance / 1000).toFixed(1);
+                document.getElementById('totalDistanceStats').textContent = totalKm;
+                
+                // 総セッション数を計算
+                let totalSessions = 0;
+                Object.values(this.workoutStorage.dailyRecords).forEach(record => {
+                    totalSessions += record.sessions;
+                });
+                document.getElementById('totalSessionsStats').textContent = totalSessions;
+                
+                // 今日の記録
+                const today = this.getTodaysWorkout();
+                document.getElementById('todayDistanceStats').textContent = (today.distance / 1000).toFixed(1);
+                
+                // 今月の記録
+                const thisMonth = new Date().toISOString().substring(0, 7);
+                const monthlyDistance = this.getMonthlyTotal(thisMonth);
+                document.getElementById('thisMonthStats').textContent = (monthlyDistance / 1000).toFixed(1);
+                
+                // 最近の記録を表示
+                this.updateRecentRecords();
+            }
+            
+            updateRecentRecords() {
+                const recentContainer = document.getElementById('recentRecords');
+                const records = Object.entries(this.workoutStorage.dailyRecords)
+                    .sort(([a], [b]) => b.localeCompare(a)) // 日付降順
+                    .slice(0, 7); // 最新7日分
+                
+                if (records.length === 0) {
+                    recentContainer.innerHTML = '<p style="color: #999; text-align: center;">記録がありません</p>';
+                    return;
+                }
+                
+                let html = '';
+                records.forEach(([date, record]) => {
+                    const formattedDate = new Date(date).toLocaleDateString('ja-JP', {
+                        month: 'short',
+                        day: 'numeric',
+                        weekday: 'short'
+                    });
+                    const distanceKm = (record.distance / 1000).toFixed(1);
+                    const durationMin = Math.round(record.duration);
+                    
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin: 5px 0; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+                            <div style="font-weight: 600;">${formattedDate}</div>
+                            <div style="font-size: 0.9em; color: #666;">
+                                ${distanceKm}km・${durationMin}分・${record.sessions}回
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                recentContainer.innerHTML = html;
+            }
+            
+            showResetModal() {
+                document.getElementById('resetModal').classList.add('show');
+                this.log('⚠️ リセット確認ダイアログを表示');
+            }
+            
+            hideResetModal() {
+                document.getElementById('resetModal').classList.remove('show');
+                this.log('📝 リセットをキャンセル');
+            }
+            
+            confirmResetData() {
+                try {
+                    // LocalStorageから完全削除
+                    localStorage.removeItem('fitnessWorkoutData');
+                    
+                    // メモリ上のデータをリセット
+                    this.workoutStorage = {
+                        totalDistance: 0,
+                        dailyRecords: {},
+                        monthlyTotals: {}
+                    };
+                    
+                    // 表示を更新
+                    this.updateTotalDistanceDisplay();
+                    this.updateSettingsDisplay();
+                    
+                    // モーダルを閉じる
+                    this.hideResetModal();
+                    
+                    this.log('🗑️ すべての運動記録をリセットしました');
+                    this.log('📊 新しい記録を開始できます');
+                    
+                } catch (error) {
+                    this.log(`❌ リセットエラー: ${error.message}`);
+                }
+            }
+
+            throttledResistanceChange(level) {
+                const now = Date.now();
+                if (now - this.lastResistanceCommand > this.resistanceThrottle) {
+                    this.setResistanceLevel(level);
+                    this.lastResistanceCommand = now;
+                } else {
+                    // UI だけ更新
+                    document.getElementById('resistanceLevel').textContent = level;
+                    this.log(`⏳ 負荷調整はスロットル中 (${this.resistanceThrottle/1000}秒間隔)`);
+                }
+            }
+
+            log(message) {
+                const logElement = document.getElementById('log');
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.innerHTML += `<span style="color: #00ffff;">[${timestamp}]</span> <span style="color: #00ff00;">${message}</span>\n`;
+                logElement.scrollTop = logElement.scrollHeight;
+                console.log(message);
+            }
+
+            debugLog(section, data) {
+                const element = document.getElementById(section);
+                if (element) {
+                    element.textContent = data;
+                }
+            }
+
+            bytesToHex(bytes) {
+                return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            }
+
+            updateStatus(message, isConnected = false) {
+                const statusElement = document.getElementById('status');
+                if (statusElement) {
+                    // ステータステキストを更新する時はボタンを保持
+                    const button = statusElement.querySelector('#connectionToggle');
+                    const buttonHTML = button ? button.outerHTML : '';
+                    statusElement.innerHTML = message + (buttonHTML ? ' ' + buttonHTML : '');
+                    statusElement.className = `status ${isConnected ? 'connected' : 'disconnected'}`;
+                }
+            }
+
+            updatePowerDisplay(power) {
+                const maxPower = 500;
+                const percentage = Math.min(power / maxPower, 1);
+                
+                // カード表示更新
+                const powerValueElem = document.getElementById('powerValue');
+                if (powerValueElem) powerValueElem.textContent = power;
+                
+                // バー表示更新
+                const powerBarFillElem = document.getElementById('powerBarFill');
+                if (powerBarFillElem) {
+                    powerBarFillElem.style.width = `${percentage * 100}%`;
+                    powerBarFillElem.textContent = `${power}W`;
+                }
+            }
+
+            updateDuration() {
+                if (this.startTime && this.isMonitoring) {
+                    const elapsed = Date.now() - this.startTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('duration').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                setTimeout(() => this.updateDuration(), 1000);
+            }
+
+            toggleDebug() {
+                this.debugVisible = !this.debugVisible;
+                
+                const debugPanel = document.getElementById('debugPanel');
+                const logPanel = document.getElementById('logPanel');
+                
+                if (this.debugVisible) {
+                    debugPanel.classList.add('show');
+                    logPanel.classList.add('show');
+                    this.log('🔍 デバッグ情報を表示');
+                } else {
+                    debugPanel.classList.remove('show');
+                    logPanel.classList.remove('show');
+                    this.log('🔍 デバッグ情報を非表示');
+                }
+            }
+            
+            // toggleChart function removed - グラフは常に表示
+            
+            initChart() {
+                // チャートは常に表示
+                
+                const canvas = document.getElementById('workoutChart');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                this.drawChart(ctx, canvas.width, canvas.height);
+            }
+            
+            drawChart(ctx, width, height) {
+                ctx.clearRect(0, 0, width, height);
+                
+                if (this.workoutData.time.length === 0) {
+                    ctx.fillStyle = '#666';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('ワークアウト開始後にデータが表示されます', width / 2, height / 2);
+                    return;
+                }
+                
+                const margin = 60;
+                const chartWidth = (width - margin * 3) / 2; // 2つのグラフに分割
+                const chartHeight = height - margin * 2;
+                
+                ctx.fillStyle = '#fafafa';
+                ctx.fillRect(0, 0, width, height);
+                
+                const maxSpeed = Math.max(...this.workoutData.speed, 30);
+                const maxPower = Math.max(...this.workoutData.power, 200);
+                const maxDistance = Math.max(...this.workoutData.distance, 100);
+                const dataLength = this.workoutData.speed.length;
+                
+                // 左側グラフ: 速度とパワー
+                this.drawSpeedPowerChart(ctx, margin, margin, chartWidth, chartHeight, maxSpeed, maxPower, dataLength);
+                
+                // 右側グラフ: 距離
+                const rightChartX = margin * 2 + chartWidth;
+                this.drawDistanceChart(ctx, rightChartX, margin, chartWidth, chartHeight, maxDistance, dataLength);
+            }
+            
+            drawSpeedPowerChart(ctx, x, y, width, height, maxSpeed, maxPower, dataLength) {
+                // Y軸（左：速度）
+                ctx.fillStyle = '#4CAF50';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.save();
+                ctx.translate(x - 40, y + height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('速度 (km/h)', 0, 0);
+                ctx.restore();
+                
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 5; i++) {
+                    const value = (maxSpeed / 5) * i;
+                    const chartY = y + height - (height / 5) * i;
+                    ctx.fillText(value.toFixed(0), x - 5, chartY + 3);
+                }
+                
+                // Y軸（右：パワー）
+                ctx.fillStyle = '#FF9800';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.save();
+                ctx.translate(x + width + 40, y + height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('パワー (W)', 0, 0);
+                ctx.restore();
+                
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'left';
+                for (let i = 0; i <= 5; i++) {
+                    const value = (maxPower / 5) * i;
+                    const chartY = y + height - (height / 5) * i;
+                    ctx.fillText(value.toFixed(0), x + width + 5, chartY + 3);
+                }
+                
+                // X軸（時間）
+                ctx.fillStyle = '#333';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                // 実際の経過時間を計算
+                const totalElapsedSeconds = this.startTime ? (Date.now() - this.startTime) / 1000 : 0;
+                const timeSpan = Math.max(totalElapsedSeconds, 30); // 最低30秒
+                for (let i = 0; i <= 10; i++) {
+                    const seconds = (timeSpan / 10) * i;
+                    const chartX = x + (width / 10) * i;
+                    if (seconds >= 60) {
+                        const minutes = Math.floor(seconds / 60);
+                        const remainingSeconds = Math.floor(seconds % 60);
+                        ctx.fillText(`${minutes}:${remainingSeconds.toString().padStart(2, '0')}`, chartX, y + height + 15);
+                    } else {
+                        ctx.fillText(seconds.toFixed(0) + 's', chartX, y + height + 15);
+                    }
+                }
+                
+                // グリッド描画
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const chartX = x + (width / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(chartX, y);
+                    ctx.lineTo(chartX, y + height);
+                    ctx.stroke();
+                }
+                
+                for (let i = 0; i <= 5; i++) {
+                    const chartY = y + (height / 5) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartY);
+                    ctx.lineTo(x + width, chartY);
+                    ctx.stroke();
+                }
+                
+                // 軸線
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y + height);
+                ctx.lineTo(x + width, y + height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x, y + height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x + width, y);
+                ctx.lineTo(x + width, y + height);
+                ctx.stroke();
+                
+                // 凡例
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(x + 10, y + 10, 15, 3);
+                ctx.fillText('速度', x + 30, y + 15);
+                
+                ctx.fillStyle = '#FF9800';
+                ctx.fillRect(x + 80, y + 10, 15, 3);
+                ctx.fillText('パワー', x + 100, y + 15);
+                
+                // データ描画（速度）
+                if (this.workoutData.speed.length > 1) {
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    
+                    for (let i = 0; i < this.workoutData.speed.length; i++) {
+                        const chartX = x + (width / Math.max(this.workoutData.speed.length - 1, 1)) * i;
+                        const chartY = y + height - (this.workoutData.speed[i] / maxSpeed) * height;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(chartX, chartY);
+                        } else {
+                            ctx.lineTo(chartX, chartY);
+                        }
+                    }
+                    ctx.stroke();
+                }
+                
+                // データ描画（パワー）
+                if (this.workoutData.power.length > 1) {
+                    ctx.strokeStyle = '#FF9800';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    
+                    for (let i = 0; i < this.workoutData.power.length; i++) {
+                        const chartX = x + (width / Math.max(this.workoutData.power.length - 1, 1)) * i;
+                        const chartY = y + height - (this.workoutData.power[i] / maxPower) * height;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(chartX, chartY);
+                        } else {
+                            ctx.lineTo(chartX, chartY);
+                        }
+                    }
+                    ctx.stroke();
+                }
+            }
+            
+            drawDistanceChart(ctx, x, y, width, height, maxDistance, dataLength) {
+                // Y軸（左：距離）
+                ctx.fillStyle = '#2196F3';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.save();
+                ctx.translate(x - 40, y + height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('累積距離 (m)', 0, 0);
+                ctx.restore();
+                
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 5; i++) {
+                    const value = (maxDistance / 5) * i;
+                    const chartY = y + height - (height / 5) * i;
+                    ctx.fillText(value.toFixed(0), x - 5, chartY + 3);
+                }
+                
+                // X軸（時間）
+                ctx.fillStyle = '#333';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                // 実際の経過時間を計算
+                const totalElapsedSeconds = this.startTime ? (Date.now() - this.startTime) / 1000 : 0;
+                const timeSpan = Math.max(totalElapsedSeconds, 30); // 最低30秒
+                for (let i = 0; i <= 10; i++) {
+                    const seconds = (timeSpan / 10) * i;
+                    const chartX = x + (width / 10) * i;
+                    if (seconds >= 60) {
+                        const minutes = Math.floor(seconds / 60);
+                        const remainingSeconds = Math.floor(seconds % 60);
+                        ctx.fillText(`${minutes}:${remainingSeconds.toString().padStart(2, '0')}`, chartX, y + height + 15);
+                    } else {
+                        ctx.fillText(seconds.toFixed(0) + 's', chartX, y + height + 15);
+                    }
+                }
+                
+                // グリッド描画
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const chartX = x + (width / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(chartX, y);
+                    ctx.lineTo(chartX, y + height);
+                    ctx.stroke();
+                }
+                
+                for (let i = 0; i <= 5; i++) {
+                    const chartY = y + (height / 5) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartY);
+                    ctx.lineTo(x + width, chartY);
+                    ctx.stroke();
+                }
+                
+                // 軸線
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y + height);
+                ctx.lineTo(x + width, y + height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x, y + height);
+                ctx.stroke();
+                
+                // 凡例
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#2196F3';
+                ctx.fillRect(x + 10, y + 10, 15, 3);
+                ctx.fillText('累積距離', x + 30, y + 15);
+                
+                // データ描画（距離）
+                if (this.workoutData.distance.length > 1) {
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    
+                    for (let i = 0; i < this.workoutData.distance.length; i++) {
+                        const chartX = x + (width / Math.max(this.workoutData.distance.length - 1, 1)) * i;
+                        const chartY = y + height - (this.workoutData.distance[i] / maxDistance) * height;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(chartX, chartY);
+                        } else {
+                            ctx.lineTo(chartX, chartY);
+                        }
+                    }
+                    ctx.stroke();
+                    
+                    // 現在の距離値を表示
+                    if (this.workoutData.distance.length > 0) {
+                        const lastDistance = this.workoutData.distance[this.workoutData.distance.length - 1];
+                        const lastX = x + width - 10;
+                        const lastY = y + height - (lastDistance / maxDistance) * height;
+                        
+                        ctx.fillStyle = '#2196F3';
+                        ctx.font = 'bold 12px Arial';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`${Math.round(lastDistance)}m`, lastX, lastY - 5);
+                    }
+                }
+            }
+
+            updateConnectionButton() {
+                const btn = document.getElementById('connectionToggle');
+                if (btn) {
+                    if (this.isConnected) {
+                        btn.textContent = '❌ 切断';
+                        btn.classList.add('connected');
+                    } else {
+                        btn.textContent = '🔗 接続';
+                        btn.classList.remove('connected');
+                    }
+                }
+            }
+
+            async toggleConnection() {
+                if (this.isConnected) {
+                    await this.disconnect();
+                } else {
+                    await this.connect();
+                }
+            }
+            
+            async connect() {
+                try {
+                    this.log('🔍 Bluetoothデバイスを検索中...');
+                    
+                    this.device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { services: [this.services.FITNESS_MACHINE] },
+                            { services: [this.services.CYCLING_POWER] },
+                            { services: [this.services.CYCLING_SPEED_CADENCE] }
+                        ],
+                        optionalServices: [
+                            this.services.FITNESS_MACHINE,
+                            this.services.CYCLING_POWER,
+                            this.services.CYCLING_SPEED_CADENCE
+                        ]
+                    });
+
+                    this.log(`✅ デバイス発見: ${this.device.name || 'Unknown Device'}`);
+                    
+                    this.device.addEventListener('gattserverdisconnected', () => {
+                        this.log('❌ デバイスが切断されました');
+                        this.updateStatus('切断されました');
+                        this.isConnected = false;
+                        this.updateConnectionButton();
+                    });
+
+                    this.server = await this.device.gatt?.connect();
+                    this.log('🔗 GATT サーバーに接続しました');
+                    
+                    await this.discoverServices();
+                    await this.setupControlPoint();
+                    
+                    this.isConnected = true;
+                    this.updateStatus(`接続済み: ${this.device.name}`, true);
+                    this.updateConnectionButton();
+                    
+                    // グラフを初期化して表示
+                    this.initChart();
+                    
+                    // 自動でデータ取得開始
+                    setTimeout(() => {
+                        this.startMonitoring();
+                    }, 1000);
+                    
+                } catch (error) {
+                    this.log(`❌ 接続エラー: ${error.message}`);
+                    this.updateStatus('接続エラー');
+                }
+            }
+
+            async setupControlPoint() {
+                try {
+                    const service = await this.server?.getPrimaryService(this.services.FITNESS_MACHINE);
+                    this.controlPoint = await service?.getCharacteristic(this.characteristics.FITNESS_MACHINE_CONTROL_POINT);
+                    
+                    // Control Pointの応答を監視
+                    await this.controlPoint?.startNotifications();
+                    this.controlPoint?.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleControlPointResponse(event.target.value);
+                    });
+                    
+                    this.log('🎛️ Control Point応答監視を開始');
+                } catch (error) {
+                    this.log(`⚠️ Control Point設定エラー: ${error.message}`);
+                }
+            }
+            
+            async requestControl() {
+                if (!this.controlPoint) {
+                    this.log('❌ Control Pointが利用できません');
+                    return false;
+                }
+                
+                try {
+                    const command = new Uint8Array(1);
+                    command[0] = 0x00; // OpCode 0x00: Request Control
+                    
+                    this.log('🎛️ 制御権要求送信中...');
+                    await this.controlPoint.writeValue(command);
+                    this.log('✅ 制御権要求送信完了');
+                    
+                    // 応答を待つ
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    return true;
+                } catch (error) {
+                    this.log(`❌ 制御権要求エラー: ${error.message}`);
+                    return false;
+                }
+            }
+            
+            async startResume() {
+                if (!this.controlPoint) {
+                    this.log('❌ Control Pointが利用できません');
+                    return false;
+                }
+                
+                try {
+                    const command = new Uint8Array(1);
+                    command[0] = 0x07; // OpCode 0x07: Start or Resume
+                    
+                    this.log('▶️ 開始コマンド送信中...');
+                    await this.controlPoint.writeValue(command);
+                    this.log('✅ 開始コマンド送信完了');
+                    
+                    // 応答を待つ
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    return true;
+                } catch (error) {
+                    this.log(`❌ 開始コマンドエラー: ${error.message}`);
+                    return false;
+                }
+            }
+
+            handleControlPointResponse(dataView) {
+                const responseCode = dataView.getUint8(0);
+                const requestOpCode = dataView.getUint8(1);
+                const resultCode = dataView.getUint8(2);
+                
+                const resultMap = {
+                    0x01: 'SUCCESS',
+                    0x02: 'NOT_SUPPORTED',
+                    0x03: 'INVALID_PARAMETER',
+                    0x04: 'OPERATION_FAILED',
+                    0x05: 'CONTROL_NOT_PERMITTED'
+                };
+                
+                const result = resultMap[resultCode] || `UNKNOWN(${resultCode})`;
+                this.log(`🎛️ Control Point応答: OpCode=${requestOpCode.toString(16)}, Result=${result}`);
+                
+                this.debugLog('debugControl', 
+                    `応答コード: 0x${responseCode.toString(16)}\n` +
+                    `要求OpCode: 0x${requestOpCode.toString(16)}\n` +
+                    `結果: ${result} (0x${resultCode.toString(16)})`);
+            }
+
+            async discoverServices() {
+                for (const [serviceName, serviceUuid] of Object.entries(this.services)) {
+                    try {
+                        const service = await this.server?.getPrimaryService(serviceUuid);
+                        this.log(`🔧 ${serviceName} サービスを発見`);
+                        
+                        const characteristics = await service?.getCharacteristics();
+                        for (const char of characteristics || []) {
+                            this.log(`  📡 特性: ${char.uuid.substring(4, 8)} (${this.getCharacteristicProperties(char)})`);
+                        }
+                    } catch (error) {
+                        this.log(`⚠️ ${serviceName} サービスが見つかりません`);
+                    }
+                }
+            }
+
+            getCharacteristicProperties(characteristic) {
+                const props = [];
+                if (characteristic.properties.read) props.push('READ');
+                if (characteristic.properties.write) props.push('WRITE');
+                if (characteristic.properties.notify) props.push('NOTIFY');
+                if (characteristic.properties.indicate) props.push('INDICATE');
+                return props.join(', ');
+            }
+
+            async startMonitoring() {
+                if (!this.server) {
+                    this.log('❌ デバイスが接続されていません');
+                    return;
+                }
+
+                this.isMonitoring = true;
+                this.startTime = Date.now();
+                this.sessionDistance = 0; // セッション距離をリセット
+                this.lastTotalDistanceUpdate = 0; // 総距離更新のベースリセット
+                
+                // 距離計算を有効化（ハードウェア距離が利用できない場合の備え）
+                this.distanceCalculationEnabled = true;
+                this.lastDistanceUpdateTime = Date.now();
+                
+                // セッション最大値をリセット
+                this.sessionMaxSpeed = 0;
+                this.sessionMaxCadence = 0;
+                this.sessionMaxPower = 0;
+                const maxSpeedElem = document.getElementById('speedCadenceMax');
+                if (maxSpeedElem) maxSpeedElem.textContent = '0';
+                
+                // カロリーをリセット
+                this.sessionCalories = 0;
+                this.lastCalorieUpdateTime = Date.now();
+                const caloriesElem = document.getElementById('calories');
+                if (caloriesElem) caloriesElem.textContent = '0';
+                
+                this.log('▶️ データ監視を開始します...');
+
+                // 制御権要求とセットアップを追加
+                await this.requestControl();
+                await this.startResume();
+                
+                // データ監視開始
+                await this.monitorFitnessMachineData();
+                await this.monitorCyclingPowerData();
+                await this.monitorCSCData();
+            }
+
+            async monitorFitnessMachineData() {
+                try {
+                    const service = await this.server?.getPrimaryService(this.services.FITNESS_MACHINE);
+                    const characteristic = await service?.getCharacteristic(this.characteristics.INDOOR_BIKE_DATA);
+                    
+                    await characteristic?.startNotifications();
+                    characteristic?.addEventListener('characteristicvaluechanged', (event) => {
+                        this.parseIndoorBikeData(event.target.value);
+                    });
+                    
+                    this.log('📊 Indoor Bike Data の通知を開始');
+                } catch (error) {
+                    this.log(`❌ Fitness Machine監視エラー: ${error.message}`);
+                }
+            }
+
+            async monitorCyclingPowerData() {
+                try {
+                    const service = await this.server?.getPrimaryService(this.services.CYCLING_POWER);
+                    const characteristic = await service?.getCharacteristic(this.characteristics.CYCLING_POWER_MEASUREMENT);
+                    
+                    await characteristic?.startNotifications();
+                    characteristic?.addEventListener('characteristicvaluechanged', (event) => {
+                        this.parseCyclingPowerData(event.target.value);
+                    });
+                    
+                    this.log('⚡ Cycling Power の通知を開始');
+                } catch (error) {
+                    this.log(`❌ Cycling Power監視エラー: ${error.message}`);
+                }
+            }
+
+            async monitorCSCData() {
+                try {
+                    const service = await this.server?.getPrimaryService(this.services.CYCLING_SPEED_CADENCE);
+                    const characteristic = await service?.getCharacteristic(this.characteristics.CSC_MEASUREMENT);
+                    
+                    await characteristic?.startNotifications();
+                    characteristic?.addEventListener('characteristicvaluechanged', (event) => {
+                        this.parseCSCData(event.target.value);
+                    });
+                    
+                    this.log('🚀 Speed & Cadence の通知を開始');
+                } catch (error) {
+                    this.log(`❌ Speed & Cadence監視エラー: ${error.message}`);
+                }
+            }
+
+            parseIndoorBikeData(dataView) {
+                // 生データをデバッグ表示
+                const rawBytes = new Uint8Array(dataView.buffer);
+                const hexString = this.bytesToHex(rawBytes);
+                
+                const flags = dataView.getUint16(0, true);
+                let offset = 2;
+                let debugInfo = `生データ: ${hexString}\nフラグ: 0x${flags.toString(16).padStart(4, '0')} (${flags.toString(2).padStart(16, '0')})\n\n`;
+                
+                try {
+                    // More Dataフラグ (bit 0)
+                    const hasMoreData = (flags & 0x01) !== 0;
+                    debugInfo += `More Data: ${hasMoreData}\n`;
+                    
+                    // Average Speedフラグ (bit 1)
+                    const hasAvgSpeed = (flags & 0x02) !== 0;
+                    debugInfo += `Average Speed: ${hasAvgSpeed}\n`;
+                    
+                    // Instantaneous Cadenceフラグ (bit 2)
+                    const hasInstCadence = (flags & 0x04) !== 0;
+                    debugInfo += `Instantaneous Cadence: ${hasInstCadence}\n`;
+                    
+                    // Average Cadenceフラグ (bit 3)
+                    const hasAvgCadence = (flags & 0x08) !== 0;
+                    debugInfo += `Average Cadence: ${hasAvgCadence}\n`;
+                    
+                    // Total Distanceフラグ (bit 4)
+                    const hasTotalDistance = (flags & 0x10) !== 0;
+                    debugInfo += `Total Distance: ${hasTotalDistance}\n`;
+                    
+                    // Resistance Levelフラグ (bit 5)
+                    const hasResistanceLevel = (flags & 0x20) !== 0;
+                    debugInfo += `Resistance Level: ${hasResistanceLevel}\n`;
+                    
+                    // Instantaneous Powerフラグ (bit 6)
+                    const hasInstPower = (flags & 0x40) !== 0;
+                    debugInfo += `Instantaneous Power: ${hasInstPower}\n`;
+                    
+                    // Average Powerフラグ (bit 7)
+                    const hasAvgPower = (flags & 0x80) !== 0;
+                    debugInfo += `Average Power: ${hasAvgPower}\n\n`;
+                    
+                    // Instantaneous Speed は常に存在
+                    if (offset + 2 <= dataView.byteLength) {
+                        const rawSpeed = dataView.getUint16(offset, true) * 0.01; // 0.01 km/h resolution
+                        
+                        // 速度履歴を更新
+                        this.speedHistory.push(rawSpeed);
+                        if (this.speedHistory.length > this.speedHistoryMaxLength) {
+                            this.speedHistory.shift();
+                        }
+                        
+                        // 短期間の移動平均を計算（より即応性の高い速度表示）
+                        let avgSpeed = this.speedHistory.reduce((sum, s) => sum + s, 0) / this.speedHistory.length;
+                        
+                        // 速度が0になったら、時間経過で減衰
+                        const timeSinceLastUpdate = Date.now() - this.lastSpeedUpdateTime;
+                        if (rawSpeed === 0 && timeSinceLastUpdate > this.speedDecayTime) {
+                            avgSpeed = 0;
+                            this.speedHistory = [0]; // 0で初期化
+                        }
+                        this.lastSpeedUpdateTime = Date.now();
+                        
+                        // 現在の表示モードに応じて更新
+                        if (this.speedDisplayMode === 'speed') {
+                            this.updateSpeedCadenceDisplay(avgSpeed, undefined);
+                        }
+                        debugInfo += `Speed: ${avgSpeed.toFixed(1)} km/h (raw: ${rawSpeed.toFixed(1)}, avg of ${this.speedHistory.length} points)\n`;
+                        
+                        // セッション最大速度を更新
+                        this.updateSessionMax('speed', avgSpeed);
+                        
+                        // 速度から距離を計算（ハードウェア距離が無効な場合）
+                        if (this.distanceCalculationEnabled) {
+                            this.calculateDistanceFromSpeed(avgSpeed);
+                            debugInfo += `📏 Calculated Distance: ${Math.round(this.sessionDistance)} m (from speed integration)\n`;
+                        }
+                        
+                        // カロリー計算を更新（速度のみでも実行）
+                        this.updateCalories(avgSpeed, this.lastCadence || 0);
+                        
+                        // ワークアウトデータに追加
+                        this.addWorkoutData('speed', avgSpeed);
+                        this.addWorkoutData('distance', this.sessionDistance);
+                        
+                        offset += 2;
+                    }
+                    
+                    // Average Speed
+                    if (hasAvgSpeed && offset + 2 <= dataView.byteLength) {
+                        const avgSpeed = dataView.getUint16(offset, true) * 0.01;
+                        debugInfo += `Avg Speed: ${avgSpeed.toFixed(1)} km/h\n`;
+                        offset += 2;
+                    }
+                    
+                    // Instantaneous Cadence
+                    if (hasInstCadence && offset + 2 <= dataView.byteLength) {
+                        const cadence = dataView.getUint16(offset, true) * 0.5; // 0.5 rpm resolution
+                        // 現在の表示モードに応じて更新
+                        if (this.speedDisplayMode === 'cadence') {
+                            this.updateSpeedCadenceDisplay(undefined, cadence);
+                        }
+                        debugInfo += `Cadence: ${cadence.toFixed(0)} rpm (raw: ${dataView.getUint16(offset, true)})\n`;
+                        
+                        // セッション最大ケイデンスを更新
+                        this.updateSessionMax('cadence', cadence);
+                        
+                        // 最後のケイデンス値を保存
+                        this.lastCadence = cadence;
+                        
+                        // カロリー計算を更新
+                        this.updateCalories(avgSpeed || 0, cadence);
+                        
+                        // ワークアウトデータに追加
+                        this.addWorkoutData('cadence', cadence);
+                        
+                        offset += 2;
+                    }
+                    
+                    // Average Cadence
+                    if (hasAvgCadence && offset + 2 <= dataView.byteLength) {
+                        const avgCadence = dataView.getUint16(offset, true) * 0.5;
+                        debugInfo += `Avg Cadence: ${avgCadence.toFixed(0)} rpm\n`;
+                        offset += 2;
+                    }
+                    
+                    // Total Distance
+                    if (hasTotalDistance && offset + 3 <= dataView.byteLength) {
+                        // 24bit値を読み取り
+                        const distanceMeters = (dataView.getUint8(offset) | 
+                                              (dataView.getUint8(offset + 1) << 8) | 
+                                              (dataView.getUint8(offset + 2) << 16)); // メートル単位
+                        
+                        debugInfo += `Distance Raw Data: ${dataView.getUint8(offset)} ${dataView.getUint8(offset + 1)} ${dataView.getUint8(offset + 2)} = ${distanceMeters}m\n`;
+                        
+                        // 距離データが有効かチェック（0でない、かつ妥当な値）
+                        if (distanceMeters > 0 && distanceMeters < 999999) {
+                            this.sessionDistance = distanceMeters;
+                            this.distanceCalculationEnabled = false; // ハードウェア距離を優先
+                            document.getElementById('distance').textContent = distanceMeters;
+                            document.getElementById('distanceUnit').textContent = 'm';
+                            debugInfo += `✅ Hardware Distance: ${distanceMeters} m\n`;
+                            
+                            // ハードウェア距離でもリアルタイム更新
+                            this.updateTotalDistanceRealtime();
+                        } else {
+                            // 距離データが無効な場合は速度から計算に切り替え
+                            if (!this.distanceCalculationEnabled) {
+                                this.distanceCalculationEnabled = true;
+                                this.sessionDistance = 0; // リセット
+                                this.lastDistanceUpdateTime = Date.now();
+                                debugInfo += `⚠️ Hardware distance invalid (${distanceMeters}), switching to speed-based calculation\n`;
+                            }
+                        }
+                        offset += 3;
+                    } else {
+                        // 距離データが存在しない場合は速度から計算
+                        if (!this.distanceCalculationEnabled) {
+                            this.distanceCalculationEnabled = true;
+                            this.sessionDistance = 0;
+                            this.lastDistanceUpdateTime = Date.now();
+                            debugInfo += `ℹ️ No hardware distance available, using speed-based calculation\n`;
+                        }
+                    }
+                    
+                    // Resistance Level
+                    if (hasResistanceLevel && offset + 2 <= dataView.byteLength) {
+                        const resistanceLevel = dataView.getInt16(offset, true);
+                        debugInfo += `Resistance Level: ${resistanceLevel}\n`;
+                        offset += 2;
+                    }
+                    
+                    // Instantaneous Power
+                    if (hasInstPower && offset + 2 <= dataView.byteLength) {
+                        const power = dataView.getInt16(offset, true); // 1 W resolution
+                        if (power >= 0 && power <= 2000) { // 妥当な範囲のパワー値のみ表示
+                            this.updatePowerDisplay(power);
+                            debugInfo += `Power: ${power} W (raw: ${dataView.getInt16(offset, true)})\n`;
+                            
+                            // セッション最大パワーを更新
+                            this.updateSessionMax('power', power);
+                            
+                            // ワークアウトデータに追加
+                            this.addWorkoutData('power', power);
+                        } else {
+                            debugInfo += `Power: ${power} W (INVALID - 範囲外)\n`;
+                        }
+                        offset += 2;
+                    }
+                    
+                    // Average Power
+                    if (hasAvgPower && offset + 2 <= dataView.byteLength) {
+                        const avgPower = dataView.getInt16(offset, true);
+                        debugInfo += `Avg Power: ${avgPower} W\n`;
+                        offset += 2;
+                    }
+                    
+                } catch (error) {
+                    debugInfo += `\nパースエラー: ${error.message}`;
+                }
+                
+                this.debugLog('debugIndoorBike', debugInfo);
+            }
+
+            parseCyclingPowerData(dataView) {
+                const rawBytes = new Uint8Array(dataView.buffer);
+                const hexString = this.bytesToHex(rawBytes);
+                
+                const flags = dataView.getUint16(0, true);
+                const power = dataView.getInt16(2, true);
+                
+                if (power >= 0 && power <= 2000) {
+                    this.updatePowerDisplay(power);
+                }
+                
+                let debugInfo = `生データ: ${hexString}\n`;
+                debugInfo += `フラグ: 0x${flags.toString(16)}\n`;
+                debugInfo += `パワー: ${power} W\n`;
+                
+                this.debugLog('debugCyclingPower', debugInfo);
+            }
+
+            parseCSCData(dataView) {
+                const rawBytes = new Uint8Array(dataView.buffer);
+                const hexString = this.bytesToHex(rawBytes);
+                
+                const flags = dataView.getUint8(0);
+                let offset = 1;
+                let debugInfo = `生データ: ${hexString}\n`;
+                debugInfo += `フラグ: 0x${flags.toString(16)} (${flags.toString(2).padStart(8, '0')})\n`;
+                
+                if (flags & 0x01) { // Wheel revolution data present
+                    const wheelRevolutions = dataView.getUint32(offset, true);
+                    const wheelEventTime = dataView.getUint16(offset + 4, true);
+                    debugInfo += `Wheel: ${wheelRevolutions} revolutions, ${wheelEventTime} time\n`;
+                    offset += 6;
+                }
+                
+                if (flags & 0x02) { // Crank revolution data present
+                    const crankRevolutions = dataView.getUint16(offset, true);
+                    const crankEventTime = dataView.getUint16(offset + 2, true);
+                    debugInfo += `Crank: ${crankRevolutions} revolutions, ${crankEventTime} time\n`;
+                    
+                    const cadence = this.calculateCadence(crankRevolutions, crankEventTime);
+                    if (cadence >= 0) {
+                        // 現在の表示モードに応じて更新
+                        if (this.speedDisplayMode === 'cadence') {
+                            this.updateSpeedCadenceDisplay(undefined, cadence);
+                        }
+                        debugInfo += `計算されたケイデンス: ${cadence.toFixed(0)} rpm\n`;
+                        
+                        // セッション最大ケイデンスを更新
+                        this.updateSessionMax('cadence', cadence);
+                        
+                        // 最後のケイデンス値を保存
+                        this.lastCadence = cadence;
+                        
+                        // ワークアウトデータに追加
+                        this.addWorkoutData('cadence', cadence);
+                    }
+                }
+                
+                this.debugLog('debugCSC', debugInfo);
+            }
+
+            calculateCadence(crankRevolutions, crankEventTime) {
+                if (!this.lastCrankData) {
+                    this.lastCrankData = { revolutions: crankRevolutions, time: crankEventTime };
+                    return -1;
+                }
+                
+                const revDiff = crankRevolutions - this.lastCrankData.revolutions;
+                const timeDiff = (crankEventTime - this.lastCrankData.time) / 1024;
+                
+                if (timeDiff > 0 && revDiff >= 0) {
+                    const cadence = (revDiff * 60) / timeDiff;
+                    this.lastCrankData = { revolutions: crankRevolutions, time: crankEventTime };
+                    return cadence;
+                }
+                
+                return -1;
+            }
+
+            async setResistanceLevel(level) {
+                this.currentResistance = level;
+                document.getElementById('resistanceLevel').textContent = level;
+                
+                if (this.controlPoint) {
+                    await this.sendResistanceCommand(level);
+                }
+                
+                this.log(`🔧 負荷レベルを ${level} に設定しました`);
+            }
+
+            async sendResistanceCommand(resistanceLevel) {
+                if (!this.controlPoint) {
+                    this.log('❌ Control Pointが利用できません');
+                    return;
+                }
+
+                try {
+                    // OpCode 0x04: Set Target Resistance Level
+                    const command = new Uint8Array(3);
+                    command[0] = 0x04; // OpCode for Set Target Resistance Level
+                    command[1] = resistanceLevel & 0xFF; // Low byte
+                    command[2] = (resistanceLevel >> 8) & 0xFF; // High byte
+                    
+                    const hexString = this.bytesToHex(command);
+                    this.log(`📡 負荷コマンド送信: ${hexString}`);
+                    
+                    this.debugLog('debugControl', 
+                        `送信コマンド: ${hexString}\n` +
+                        `OpCode: 0x04 (Set Target Resistance Level)\n` +
+                        `レベル: ${resistanceLevel}\n` +
+                        `送信時刻: ${new Date().toLocaleTimeString()}`);
+                    
+                    await this.controlPoint.writeValue(command);
+                    this.log(`✅ 負荷コマンド送信完了: レベル ${resistanceLevel}`);
+                    
+                } catch (error) {
+                    this.log(`❌ 負荷設定エラー: ${error.message}`);
+                    this.debugLog('debugControl', `エラー: ${error.message}\n送信失敗時刻: ${new Date().toLocaleTimeString()}`);
+                }
+            }
+
+            addWorkoutData(type, value) {
+                if (!this.isMonitoring) return;
+                
+                this.workoutData[type].push(value);
+                this.workoutData.time.push(Date.now());
+                
+                // データポイント数制限
+                if (this.workoutData[type].length > this.maxDataPoints) {
+                    this.workoutData[type].shift();
+                    this.workoutData.time.shift();
+                }
+                
+                // グラフ更新（1秒ごと）
+                this.dataPoints++;
+                if (this.dataPoints % 10 === 0) {
+                    this.initChart();
+                }
+            }
+
+            stopMonitoring() {
+                this.isMonitoring = false;
+                this.log('⏹️ データ監視を停止しました');
+                
+                // セッション完了時に残りの距離を累積データに追加
+                if (this.sessionDistance > 0) {
+                    const remainingDistance = this.sessionDistance - this.lastTotalDistanceUpdate;
+                    if (remainingDistance > 0) {
+                        this.addDistanceToTotal(remainingDistance);
+                        this.log(`📊 セッション終了時総距離更新: +${remainingDistance.toFixed(0)}m（残り分）`);
+                    }
+                    
+                    // セッション時間を記録
+                    if (this.startTime) {
+                        const sessionDurationMinutes = (Date.now() - this.startTime) / 60000;
+                        const today = new Date().toISOString().split('T')[0];
+                        if (this.workoutStorage.dailyRecords[today]) {
+                            this.workoutStorage.dailyRecords[today].duration += sessionDurationMinutes;
+                            this.saveStoredData();
+                        }
+                    }
+                }
+                
+                // ワークアウト統計表示
+                if (this.workoutData.speed.length > 0) {
+                    const avgSpeed = this.workoutData.speed.reduce((a, b) => a + b, 0) / this.workoutData.speed.length;
+                    const maxSpeed = Math.max(...this.workoutData.speed);
+                    const avgPower = this.workoutData.power.reduce((a, b) => a + b, 0) / this.workoutData.power.length;
+                    const maxPower = Math.max(...this.workoutData.power);
+                    
+                    this.log(`📊 ワークアウト統計:`);
+                    this.log(`   平均速度: ${avgSpeed.toFixed(1)} km/h (最高: ${maxSpeed.toFixed(1)} km/h)`);
+                    this.log(`   平均パワー: ${avgPower.toFixed(0)} W (最高: ${maxPower.toFixed(0)} W)`);
+                    this.log(`   セッション距離: ${this.sessionDistance} m`);
+                    
+                    const todaysTotal = this.getTodaysWorkout();
+                    this.log(`   今日の合計: ${(todaysTotal.distance/1000).toFixed(1)} km (${todaysTotal.sessions} セッション)`);
+                }
+            }
+
+            async disconnect() {
+                // 切断前にセッションデータを保存
+                if (this.isMonitoring) {
+                    this.stopMonitoring();
+                }
+                
+                if (this.device && this.device.gatt?.connected) {
+                    await this.device.gatt.disconnect();
+                }
+                this.device = null;
+                this.server = null;
+                this.controlPoint = null;
+                this.isConnected = false;
+                this.updateStatus('切断されました');
+                this.updateConnectionButton();
+                
+                // セッションデータリセット（累積データは保持）
+                this.workoutData = { time: [], speed: [], power: [], cadence: [], distance: [] };
+                this.dataPoints = 0;
+                this.sessionDistance = 0;
+                this.distanceCalculationEnabled = false;
+                this.lastDistanceUpdateTime = null;
+                this.lastTotalDistanceUpdate = 0;
+                
+                this.log('❌ デバイスから切断しました');
+            }
+        }
+
+        // Web Bluetooth API サポートチェック
+        if (!navigator.bluetooth) {
+            document.body.innerHTML = `
+                <div class="container">
+                    <h1>❌ Web Bluetooth API 未サポート</h1>
+                    <p>このブラウザはWeb Bluetooth APIをサポートしていません。</p>
+                    <p>Chrome、Edge、またはOperaの最新版をお使いください。</p>
+                    <p>また、HTTPSまたはlocalhost環境が必要です。</p>
+                </div>
+            `;
+        } else {
+            // アプリケーション初期化
+            const bikeController = new FitnessBikeController();
+            
+            // グローバル関数
+            window.setResistance = function(level) {
+                console.log('setResistance called with level:', level);
+                bikeController.setResistanceLevel(level);
+            };
+            
+            window.bikeController = bikeController;
+        }
+    </script>
+</body>
+</html>

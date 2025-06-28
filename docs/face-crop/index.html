@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Face Cropper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        .page-title-container {
+            padding: 10px 0 20px 0;
+            position: relative;
+        }
+
+        .header-icons {
+            position: absolute;
+            top: 10px;
+            right: 0;
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .header-icon-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-icon-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .header-icon-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .google-ai-icon {
+            width: 18px !important;
+            height: 18px !important;
+            font-weight: bold;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            color: currentColor;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start; /* Align items to the top */
+        }
+
+        .sidebar {
+            flex: 3;
+            min-width: 300px; /* Minimum width for sidebar */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .content-area {
+            flex: 7;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0; /* Prevent content area from overflowing */
+        }
+
+
+        .card {
+            background: white;
+            border-radius: 16px; /* Slightly smaller radius */
+            padding: 20px; /* Adjusted padding */
+            margin-bottom: 0; /* Removed margin as gap handles it */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15); /* Softer shadow */
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 20px; /* 25pxから20pxに削減 */
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9ff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f3ff;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #4c51bf;
+        }
+
+        .upload-icon {
+            font-size: 2.5em; /* 3emから2.5emに削減 */
+            color: #667eea;
+            margin-bottom: 10px; /* 15pxから10pxに削減 */
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px; /* Adjusted padding */
+            border-radius: 8px; /* Slightly smaller radius */
+            font-size: 1em; /* Adjusted size */
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            margin: 8px 4px; /* Adjusted margin */
+        }
+         .btn.upload-btn-text { /* Specific class for the upload button */
+             margin: 0; /* Reset margin if part of upload area directly */
+        }
+
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Softer shadow */
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+         .settings-card-actions {
+            margin-top: 20px; /* Add space above the process button within the card */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .btn-download-all { /* Specific class for Download All button */
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 8px 15px; /* Smaller padding for header button */
+            font-size: 0.9em;
+            margin: 0; /* Reset margin */
+        }
+
+
+        .processing-mode-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Adjusted gap */
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mode-option {
+            flex: 1;
+            min-width: calc(50% - 10px); /* Two options per row */
+            max-width: 200px;
+        }
+
+        .mode-radio {
+            display: none;
+        }
+
+        .mode-label {
+            display: block;
+            padding: 15px; /* Adjusted padding */
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+            height: 100%; /* Ensure labels in a row have same height */
+        }
+
+        .mode-radio:checked + .mode-label {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border-color: #667eea;
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25);
+        }
+
+        .mode-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        .mode-label h4 {
+            font-size: 1.1em; /* Adjusted size */
+            margin-bottom: 6px;
+            color: #4b5563;
+        }
+
+        .mode-radio:checked + .mode-label h4 {
+            color: #667eea;
+        }
+        .mode-label p {
+             font-size: 0.8em; color: #6b7280;
+        }
+
+        .setting-section {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 0; /* Process button will be below this */
+        }
+
+        .setting-item {
+            margin-bottom: 20px; /* Adjusted margin */
+        }
+         .setting-item:last-child {
+            margin-bottom: 0; 
+        }
+
+
+        .setting-item label, .setting-item .label-text {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9em;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px; /* Adjusted gap */
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px; /* Adjusted height */
+            background: #e5e7eb;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; /* Adjusted size */
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        input[type="range"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        input[type="range"]:disabled::-webkit-slider-thumb {
+            background: #bdc3c7; /* Muted color for disabled thumb */
+        }
+        input[type="range"]:disabled::-moz-range-thumb {
+            background: #bdc3c7;
+        }
+
+
+        .value-display {
+            min-width: 50px; /* Adjusted width */
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1em;
+        }
+
+        input[type="number"] {
+            width: 70px; /* Adjusted width */
+            padding: 6px; /* Adjusted padding */
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+         .aspect-ratio-inputs-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .aspect-ratio-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .settings-header {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .settings-process-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+        }
+
+        .flip-btn {
+            background: #f8f9ff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: auto;
+            height: auto;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .flip-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .aspect-ratio-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .preset-btn {
+            background: #f8f9ff;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 0.7em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            text-align: center;
+            flex: 0 0 auto;
+        }
+
+        .preset-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .crop-center-options {
+            display: flex;
+            gap: 20px; /* Adjusted gap */
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px; /* Adjusted gap */
+        }
+         .radio-option label {
+            margin-bottom: 0;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #4b5563;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 16px; /* Adjusted size */
+            height: 16px;
+            accent-color: #667eea;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Adjusted gap */
+            margin-top: 8px;
+        }
+        .checkbox-option label {
+            margin-bottom: 0;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #4b5563;
+        }
+
+
+        .checkbox-option input[type="checkbox"] {
+            width: 18px; /* Adjusted size */
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 12px; /* Adjusted padding */
+            border-radius: 8px;
+            font-weight: 500;
+            min-height: 45px; /* Adjusted height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.95);
+            color: #4b5563;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            word-break: break-word;
+        }
+
+        .thumbnail-grid {
+            display: grid;
+            /* grid-template-columns will be set by JS based on size */
+            gap: 15px; /* Adjusted gap */
+            margin-top: 15px;
+        }
+
+        .thumbnail-item {
+            background: #f9fafb;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            display: flex; /* Use flex for better internal alignment */
+            flex-direction: column;
+        }
+
+        .thumbnail-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .thumbnail-item img,
+        .thumbnail-item canvas {
+            width: 100%;
+            height: auto; /* Maintain aspect ratio */
+            display: block;
+            background-color: #e5e7eb; /* Placeholder bg */
+        }
+         .thumbnail-grid.card-mode.size-small .thumbnail-item img,
+        .thumbnail-grid.card-mode.size-small .thumbnail-item canvas { min-height: 80px; }
+        .thumbnail-grid.card-mode.size-medium .thumbnail-item img,
+        .thumbnail-grid.card-mode.size-medium .thumbnail-item canvas { min-height: 120px; }
+        .thumbnail-grid.card-mode.size-large .thumbnail-item img,
+        .thumbnail-grid.card-mode.size-large .thumbnail-item canvas { min-height: 160px; }
+
+
+        .thumbnail-info {
+            padding: 8px; /* Adjusted padding */
+            text-align: center;
+            margin-top: auto; /* Push info to bottom if image is short */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filename {
+            font-size: 0.8em; /* Adjusted size */
+            color: #6b7280;
+            /* margin-bottom: 6px; */ /* Removed as flex handles spacing */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 30px); /* Make space for icon button */
+            text-align: left;
+        }
+
+        .download-icon-btn {
+            background: none;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #059669; /* Green color for icon */
+            transition: color 0.2s;
+        }
+        .download-icon-btn:hover {
+            color: #10b981; /* Lighter green on hover */
+        }
+        .download-icon-btn svg {
+            width: 20px; /* Icon size */
+            height: 20px;
+        }
+
+
+        .hidden {
+            display: none !important;
+        }
+
+        .display-controls-container {
+            display: flex;
+            justify-content: space-between; /* Align items to ends */
+            align-items: center;
+            gap: 15px; /* Gap between groups */
+            margin-bottom: 10px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+         .display-control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Gap within a group */
+        }
+         .display-control-group .label-text {
+            font-size: 0.9em;
+            color: #4b5563;
+            font-weight: 500;
+            margin-bottom: 0; /* Override default label margin */
+        }
+         .display-control-group label { /* For radio button labels */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+         .display-control-group input[type="radio"] {
+            margin-right: 2px;
+         }
+
+
+        /* No-gap mode styles */
+        .thumbnail-grid.no-gap-mode {
+            gap: 2px; /* Minimal gap for no-gap */
+            grid-auto-flow: dense; /* Pack items tightly */
+        }
+         .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));}
+        .thumbnail-grid.size-medium.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+        .thumbnail-grid.size-large.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+
+        .thumbnail-grid.no-gap-mode .thumbnail-item {
+            border-radius: 0;
+            box-shadow: none;
+            overflow: hidden; /* Ensure content stays within bounds */
+            line-height: 0; /* Remove any text line spacing */
+        }
+
+        .thumbnail-grid.no-gap-mode .thumbnail-item:hover {
+            transform: none;
+            box-shadow: none;
+            /* Optional: outline on hover for no-gap mode */
+            /* outline: 2px solid #667eea; 
+            z-index: 10; */
+        }
+
+        .thumbnail-grid.no-gap-mode .thumbnail-info {
+            display: none;
+        }
+        
+        /* Specific styles for no-gap mode to handle different aspect ratios */
+        .thumbnail-grid.no-gap-mode .thumbnail-item img,
+        .thumbnail-grid.no-gap-mode .thumbnail-item canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            vertical-align: top;
+        }
+
+        /* Card mode grid columns */
+        .thumbnail-grid.size-small.card-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+        .thumbnail-grid.size-medium.card-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+        .thumbnail-grid.size-large.card-mode { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));}
+
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 1.5em; /* Adjusted size */
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px; /* Adjusted size */
+            height: 18px;
+            border: 2px solid #f3f3f3; /* Lighter border */
+            border-top: 2px solid #667eea; /* Accent color for spinner */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .debug-canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px dashed #ccc; /* Lighter border */
+            border-radius: 6px;
+        }
+
+        .disabled-section {
+            opacity: 0.6; /* Slightly more visible when disabled */
+            pointer-events: none;
+        }
+        .disabled-section .mode-label {
+             background: #f0f0f0; /* More distinct disabled bg */
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-top: 40px;
+            padding-bottom: 20px;
+            font-size: 0.85em;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: rotate(90deg);
+        }
+
+        .clickable-image {
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .clickable-image:hover {
+            opacity: 0.9;
+        }
+         .github-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .github-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .github-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 991px) { /* Breakpoint for stacking sidebar */
+            .main-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+            .content-area {
+                width: 100%;
+            }
+            h1 { font-size: 2em; }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .card { padding: 15px; }
+            .upload-area { padding: 15px; } /* 20pxから15pxに削減 */
+            .btn { padding: 10px 20px; font-size: 0.95em; }
+            /* .action-buttons-container .btn removed as process button is now in settings card */
+            .settings-card-actions .btn { font-size: 1em; padding: 12px 20px; }
+
+            .header-icons {
+                top: 5px;
+                right: 5px;
+                gap: 8px;
+            }
+
+            .header-icon-link {
+                width: 35px;
+                height: 35px;
+            }
+
+            .header-icon-link svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .mode-option {
+                min-width: 100%; /* Full width for mode options */
+            }
+
+            .preset-btn {
+                font-size: 0.8em;
+                padding: 6px 10px;
+            }
+            
+            /* Adjust grid for processed images on smaller screens */
+            .thumbnail-grid.size-small.card-mode { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));}
+            .thumbnail-grid.size-medium.card-mode { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));}
+            .thumbnail-grid.size-large.card-mode { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+
+            .thumbnail-grid.size-small.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));}
+            .thumbnail-grid.size-medium.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));}
+            .thumbnail-grid.size-large.no-gap-mode { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+
+            .section-title { font-size: 1.3em; }
+            .display-controls-container { flex-direction: column; align-items: flex-start; }
+
+            /* Responsive styles for intro section */
+            .intro-title { font-size: 1.5em; }
+            .intro-description { font-size: 1em; }
+            
+            .cover-image-container {
+                margin: 20px 0;
+            }
+            
+            .cover-image {
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .features-list {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .start-instruction p {
+                font-size: 1em;
+            }
+        }
+        @media (max-width: 480px) {
+            h1 { font-size: 1.8em; gap: 8px; }
+            .subtitle { font-size: 0.9em; }
+             .upload-icon { font-size: 2em; margin-bottom: 6px; } /* さらに削減 */
+            .btn { padding: 8px 15px; font-size: 0.9em; }
+            .settings-card-actions .btn { font-size: 0.95em; padding: 10px 15px; }
+
+            .header-icons {
+                top: 0;
+                right: 0;
+                gap: 6px;
+            }
+
+            .header-icon-link {
+                width: 32px;
+                height: 32px;
+            }
+
+            .header-icon-link svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            .setting-item label, .setting-item .label-text { font-size: 0.85em; }
+            .value-display { font-size: 0.9em; }
+            input[type="number"] { width: 60px; font-size: 0.9em; }
+            .radio-option label, .checkbox-option label { font-size: 0.85em; }
+
+            .preset-btn {
+                font-size: 0.75em;
+                padding: 5px 8px;
+                gap: 6px;
+            }
+
+            .aspect-ratio-presets {
+                gap: 6px;
+            }
+        }
+
+        /* Introduction Section Styles */
+        .intro-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .intro-title {
+            font-size: 2em;
+            color: #374151;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .intro-description {
+            font-size: 1.1em;
+            color: #6b7280;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .cover-image-container {
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cover-image {
+            max-width: 60%;
+            max-height: 300px;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            background: #f8f9ff;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .feature-icon {
+            font-size: 1.5em;
+        }
+
+        .start-instruction {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            border-radius: 12px;
+            border: 2px dashed #667eea;
+        }
+
+        .start-instruction p {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .flip-btn {
+            background: #f8f9ff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: auto;
+            height: auto;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .flip-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .aspect-ratio-presets {
+            gap: 6px;
+            justify-content: flex-start;
+        }
+
+        .preset-btn {
+            font-size: 0.8em;
+            padding: 6px 10px;
+            flex: 0 0 auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-process-btn {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .aspect-ratio-inputs-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .aspect-ratio-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .aspect-ratio-input-group .label-text {
+            font-size: 0.85em;
+            color: #4b5563;
+            font-weight: 500;
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+
+        .aspect-ratio-input-group .slider-container {
+            gap: 6px;
+        }
+
+        .aspect-ratio-input-group input[type="range"] {
+            width: 60px;
+        }
+
+        .aspect-ratio-input-group .value-display {
+            min-width: 25px;
+            font-size: 0.9em;
+        }
+
+        .aspect-ratio-input-group input[type="number"] {
+            width: 50px;
+            padding: 4px;
+            font-size: 0.85em;
+        }
+
+        .flip-btn {
+            background: #f8f9ff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: auto;
+            height: auto;
+            flex-shrink: 0;
+            gap: 4px;
+        }
+
+        .flip-btn:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .ar-preview-container {
+            text-align: center; 
+            margin: 10px 0;
+        }
+        .ar-preview-text {
+            font-weight: 600; 
+            color: #667eea; 
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-title-container">
+            <h1>
+                <span>🎯</span>
+                <span>AI Face Cropper</span>
+            </h1>
+            <p class="subtitle">MediaPipe Face Detectorで高精度な顔検出を実現</p>
+            <div class="header-icons">
+                <a href="https://github.com/kazuph/vibe-coding-apps/tree/main/face-crop-app" target="_blank" class="header-icon-link" title="GitHubリポジトリを見る">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+                <a href="https://aistudio.google.com/app/apps" target="_blank" class="header-icon-link" title="Google AI Studioを見る">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <aside class="sidebar">
+                <div class="card">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📸</div>
+                        <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
+                        <button class="btn upload-btn-text" id="selectImageButton" onclick="document.getElementById('imageUpload').click()">
+                            画像を選択
+                        </button>
+                        <p style="margin-top: 10px; color: #666; font-size: 0.85em;">
+                            複数の画像を一度に選択できます<br>
+                            またはドラッグ＆ドロップ
+                        </p>
+                    </div>
+                </div>
+
+                <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+                <div class="card">
+                    <div class="settings-header">
+                        <h3 style="font-size: 1.3em; margin: 0; color: #374151;">
+                            🎛️ 処理設定
+                        </h3>
+                        <button id="processButton" class="btn btn-success settings-process-btn">
+                            <span id="processButtonText">🚀 再処理</span>
+                        </button>
+                    </div>
+
+                    <div class="setting-section">
+                        <div class="setting-item">
+                            <label for="faceHeightRatioSlider" class="label-text">
+                                🔍 顔の相対サイズ
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="faceHeightRatioSlider" min="10" max="90" value="40" step="1">
+                                <span id="faceHeightRatioDisplay" class="value-display">40%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <span class="label-text">📐 縦横比設定</span>
+                            <div class="aspect-ratio-inputs-container">
+                                <div class="aspect-ratio-input-group">
+                                    <span class="label-text">↔️ 横</span>
+                                    <div class="slider-container">
+                                        <input type="range" id="aspectWidthSlider" min="1" max="16" value="3" step="1">
+                                        <span id="aspectWidthSliderDisplay" class="value-display">3</span>
+                                        <input type="number" id="aspectWidthInput" value="3" min="1" max="16">
+                                        <button class="flip-btn" id="flipAspectRatio" title="縦横を入れ替え">
+                                            🔄 反転
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="aspect-ratio-input-group">
+                                    <span class="label-text">↕️ 縦</span>
+                                    <div class="slider-container">
+                                        <input type="range" id="aspectHeightSlider" min="1" max="16" value="4" step="1">
+                                        <span id="aspectHeightSliderDisplay" class="value-display">4</span>
+                                        <input type="number" id="aspectHeightInput" value="4" min="1" max="16">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aspect-ratio-presets">
+                                <button class="preset-btn" data-ratio="1:1">1:1<br><small>正方形</small></button>
+                                <button class="preset-btn" data-ratio="3:4">3:4<br><small>証明写真</small></button>
+                                <button class="preset-btn" data-ratio="9:16">9:16<br><small>縦長</small></button>
+                                <button class="preset-btn" data-ratio="1:1.618">1:φ<br><small>黄金比</small></button>
+                                <button class="preset-btn" data-ratio="1:1.414">1:√2<br><small>白銀比</small></button>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <span class="label-text">🎯 切り抜き基準点</span>
+                            <div class="crop-center-options">
+                                <div class="radio-option">
+                                    <input type="radio" id="centerBox" name="cropCenter" value="box" checked>
+                                    <label for="centerBox">顔の中心</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="centerEyes" name="cropCenter" value="eyes">
+                                    <label for="centerEyes">両目の中間</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="normalizeCheckbox">
+                                <label for="normalizeCheckbox">🎨 明るさと彩度を正規化</label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="debugModeCheckbox">
+                                <label for="debugModeCheckbox">🐛 デバッグモード</label>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="settings-card-actions" style="display: none;">
+                         <button id="processButtonDuplicate" class="btn btn-success" style="font-size: 1.1em; padding: 15px;">
+                            <span id="processButtonTextDuplicate">🚀 設定を適用して再処理</span>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <!-- 説明セクション（画像処理前に表示） -->
+                <div id="introSection" class="card">
+                    <div class="intro-container">
+                        <h2 class="intro-title">✨ AI顔切り抜きアプリ</h2>
+                        <p class="intro-description">
+                            様々なサイズの写真から顔を自動検出し、統一されたサイズの顔写真に切り抜きます
+                        </p>
+                        
+                        <div class="cover-image-container">
+                            <img src="assets/cover.png" alt="AI顔切り抜きアプリの機能説明" class="cover-image" />
+                        </div>
+                        
+                        <div class="features-list">
+                            <div class="feature-item">
+                                <span class="feature-icon">🤖</span>
+                                <span>AI自動顔検出</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📐</span>
+                                <span>縦横比カスタマイズ</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">⚡</span>
+                                <span>ブラウザ内処理</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📦</span>
+                                <span>一括ダウンロード</span>
+                            </div>
+                        </div>
+                        
+                        <div class="start-instruction">
+                            <p>👈 左側から画像を選択して開始してください</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 処理結果セクション（画像処理後に表示） -->
+                <div id="processedImagesSection" class="card hidden">
+                    <div class="section-header">
+                        <h2 id="processedImagesTitle" class="section-title">✨ 加工後画像一覧</h2>
+                        <button id="downloadAllButton" class="btn btn-download-all hidden">
+                            📥 ZIPで一括DL
+                        </button>
+                    </div>
+                     <div class="display-controls-container">
+                        <div class="display-control-group">
+                            <span class="label-text">表示モード:</span>
+                            <label>
+                                <input type="radio" name="displayMode" value="card">
+                                カード
+                            </label>
+                            <label>
+                                <input type="radio" name="displayMode" value="no-gap" checked>
+                                余白なし
+                            </label>
+                        </div>
+                        <div class="display-control-group">
+                            <span class="label-text">画像サイズ:</span>
+                            <label>
+                                <input type="radio" name="imageSize" value="small" checked>
+                                <span class="ml-1">小</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="imageSize" value="medium">
+                                <span class="ml-1">中</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="imageSize" value="large">
+                                <span class="ml-1">大</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="processedImagesGrid" class="thumbnail-grid"></div>
+                    <p id="noProcessedImagesMessage" class="text-center hidden" style="color: #9ca3af; padding: 20px;">
+                        加工された画像はありません
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <footer>
+        <p>MediaPipe Face Detectorを使用しています。処理はすべてブラウザ内で完結します。</p>
+    </footer>
+
+    <!-- Modal for full-size image display -->
+    <div id="imageModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <img id="modalImage" src="" alt="Full size image">
+        </div>
+    </div>
+
+    <script type="module">
+        import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/vision_bundle.mjs";
+        import { BrightnessNormalizer } from "./brightnessNormalizer.js";
+
+        let faceDetector;
+        const imageUpload = document.getElementById('imageUpload');
+        const selectImageButton = document.getElementById('selectImageButton');
+        const processButton = document.getElementById('processButton');
+        const processButtonText = document.getElementById('processButtonText');
+        const downloadAllButton = document.getElementById('downloadAllButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const processedImagesGrid = document.getElementById('processedImagesGrid');
+        const noProcessedImagesMessage = document.getElementById('noProcessedImagesMessage');
+        const processedImagesTitle = document.getElementById('processedImagesTitle');
+        const uploadArea = document.getElementById('uploadArea');
+
+        // Section elements for display toggling
+        const introSection = document.getElementById('introSection');
+        const processedImagesSection = document.getElementById('processedImagesSection');
+
+        const preCropRatioContainer = document.getElementById('preCropRatioContainer');
+        const preCropRatioSlider = document.getElementById('preCropRatioSlider');
+        const preCropRatioDisplay = document.getElementById('preCropRatioDisplay');
+        const faceHeightRatioSlider = document.getElementById('faceHeightRatioSlider');
+        const faceHeightRatioDisplay = document.getElementById('faceHeightRatioDisplay');
+        
+        const aspectWidthSlider = document.getElementById('aspectWidthSlider');
+        const aspectWidthSliderDisplay = document.getElementById('aspectWidthSliderDisplay');
+        const aspectWidthInput = document.getElementById('aspectWidthInput');
+        const aspectHeightSlider = document.getElementById('aspectHeightSlider');
+        const aspectHeightSliderDisplay = document.getElementById('aspectHeightSliderDisplay');
+        const aspectHeightInput = document.getElementById('aspectHeightInput');
+        const flipAspectRatioBtn = document.getElementById('flipAspectRatio');
+
+        const debugModeCheckbox = document.getElementById('debugModeCheckbox');
+        const normalizeCheckbox = document.getElementById('normalizeCheckbox');
+        const displayModeRadios = document.querySelectorAll('input[name="displayMode"]');
+        const imageSizeRadios = document.querySelectorAll('input[name="imageSize"]');
+        
+        let currentFiles = []; 
+        let croppedImagesData = [];
+        let processedImageCounter = 0;
+        let currentFaceHeightRatio = parseInt(faceHeightRatioSlider.value, 10) / 100;
+        let currentAspectWidth = parseFloat(aspectWidthInput.value);
+        let currentAspectHeight = parseFloat(aspectHeightInput.value);
+        let currentCropCenterType = 'box'; 
+        let isDebugMode = debugModeCheckbox.checked;
+        let isNormalizeEnabled = normalizeCheckbox.checked;
+        let currentDisplayMode = document.querySelector('input[name="displayMode"]:checked').value;
+        let currentImageSize = document.querySelector('input[name="imageSize"]:checked').value;
+        const brightnessNormalizer = new BrightnessNormalizer();
+        let normalizedImagesMap = new Map(); // Store normalized images by filename
+
+        // Modal elements
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalClose = imageModal.querySelector('.modal-close');
+
+
+        // Modal event handlers
+        modalClose.addEventListener('click', () => {
+            imageModal.classList.remove('active');
+        });
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.classList.remove('active');
+            }
+        });
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageUpload.files = files; 
+                handleFileSelect(files);   
+            }
+        });
+
+        function updateArPreview() {
+            const numW = parseFloat(aspectWidthInput.value);
+            const numH = parseFloat(aspectHeightInput.value);
+            if (!isNaN(numW) && !isNaN(numH) && numW > 0 && numH > 0 && numW <=16 && numH <=16) {
+               currentAspectWidth = numW;
+               currentAspectHeight = numH;
+               aspectWidthSlider.value = currentAspectWidth;
+               aspectHeightSlider.value = currentAspectHeight;
+               aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+               aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+               updatePresetButtonStates();
+            } else { 
+               aspectWidthInput.value = currentAspectWidth;
+               aspectHeightInput.value = currentAspectHeight;
+            }
+        }
+
+        function setAspectRatio(width, height) {
+            currentAspectWidth = width;
+            currentAspectHeight = height;
+            aspectWidthSlider.value = currentAspectWidth;
+            aspectHeightSlider.value = currentAspectHeight;
+            aspectWidthInput.value = currentAspectWidth;
+            aspectHeightInput.value = currentAspectHeight;
+            aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+            aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+            updatePresetButtonStates();
+        }
+
+        function updatePresetButtonStates() {
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            const currentRatio = currentAspectWidth / currentAspectHeight;
+            
+            presetButtons.forEach(btn => {
+                btn.classList.remove('active');
+                const ratioStr = btn.dataset.ratio;
+                let targetRatio;
+                
+                if (ratioStr.includes(':')) {
+                    const [w, h] = ratioStr.split(':').map(parseFloat);
+                    targetRatio = w / h;
+                } else {
+                    targetRatio = parseFloat(ratioStr);
+                }
+                
+                // 小数点以下の誤差を考慮して比較
+                if (Math.abs(currentRatio - targetRatio) < 0.01) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function handlePresetClick(ratioStr) {
+            let width, height;
+            
+            if (ratioStr.includes(':')) {
+                const [w, h] = ratioStr.split(':').map(parseFloat);
+                
+                // 黄金比と白銀比は小数のまま保持
+                if (ratioStr === '1.618:1') {
+                    width = 1.618;
+                    height = 1;
+                } else if (ratioStr === '1.414:1') {
+                    width = 1.414;
+                    height = 1;
+                } else if (ratioStr === '1:1.618') {
+                    width = 1;
+                    height = 1.618;
+                } else if (ratioStr === '1:1.414') {
+                    width = 1;
+                    height = 1.414;
+                } else if (w === Math.floor(w) && h === Math.floor(h)) {
+                    // 整数の場合はそのまま
+                    width = Math.floor(w);
+                    height = Math.floor(h);
+                } else {
+                    // その他の小数の場合は適切なスケールで整数化
+                    const scale = Math.max(1, Math.ceil(Math.max(w, h)));
+                    width = Math.round(w * scale);
+                    height = Math.round(h * scale);
+                    
+                    // 16以下に収める
+                    while (width > 16 || height > 16) {
+                        width = Math.floor(width / 2);
+                        height = Math.floor(height / 2);
+                    }
+                }
+            }
+            
+            setAspectRatio(width, height);
+        }
+        
+        function flipAspectRatio() {
+            const tempWidth = currentAspectWidth;
+            setAspectRatio(currentAspectHeight, tempWidth);
+        }
+
+        function applyDisplayModeToGrid() {
+            processedImagesGrid.classList.toggle('no-gap-mode', currentDisplayMode === 'no-gap');
+            processedImagesGrid.classList.toggle('card-mode', currentDisplayMode === 'card');
+        }
+
+        function applyImageSizeToGrid() {
+            processedImagesGrid.classList.remove('size-small', 'size-medium', 'size-large');
+            processedImagesGrid.classList.add(`size-${currentImageSize}`);
+        }
+
+        // Function to toggle between intro and results sections
+        function showIntroSection() {
+            introSection.classList.remove('hidden');
+            processedImagesSection.classList.add('hidden');
+        }
+
+        function showResultsSection() {
+            introSection.classList.add('hidden');
+            processedImagesSection.classList.remove('hidden');
+        }
+
+
+        // Initial UI setup
+        faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
+        aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+        aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+        
+        applyImageSizeToGrid();
+        applyDisplayModeToGrid();
+
+        // Preset buttons event listeners
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handlePresetClick(btn.dataset.ratio);
+            });
+        });
+
+        // Flip aspect ratio button event listener
+        flipAspectRatioBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            flipAspectRatio();
+        });
+
+        // Event Listeners
+        displayModeRadios.forEach(radio => {
+            radio.addEventListener('change', (event) => {
+                currentDisplayMode = event.target.value;
+                applyDisplayModeToGrid();
+            });
+        });
+        
+        imageSizeRadios.forEach(radio => {
+            radio.addEventListener('change', (event) => {
+                currentImageSize = event.target.value;
+                applyImageSizeToGrid();
+            });
+        });
+
+        faceHeightRatioSlider.addEventListener('input', (event) => { 
+            currentFaceHeightRatio = parseInt(event.target.value, 10) / 100;
+            faceHeightRatioDisplay.textContent = `${(currentFaceHeightRatio * 100).toFixed(0)}%`;
+        });
+
+        aspectWidthSlider.addEventListener('input', (event) => {
+            currentAspectWidth = parseFloat(event.target.value);
+            aspectWidthInput.value = currentAspectWidth;
+            aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+            updatePresetButtonStates();
+        });
+        aspectWidthInput.addEventListener('input', () => {
+            const numW = parseFloat(aspectWidthInput.value);
+            if (!isNaN(numW) && numW > 0 && numW <= 16) {
+                currentAspectWidth = numW;
+                aspectWidthSlider.value = currentAspectWidth;
+                aspectWidthSliderDisplay.textContent = currentAspectWidth % 1 === 0 ? currentAspectWidth : currentAspectWidth.toFixed(2);
+                updatePresetButtonStates();
+            } else {
+                aspectWidthInput.value = currentAspectWidth;
+            }
+        }); 
+
+        aspectHeightSlider.addEventListener('input', (event) => {
+            currentAspectHeight = parseFloat(event.target.value);
+            aspectHeightInput.value = currentAspectHeight;
+            aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+            updatePresetButtonStates();
+        });
+        aspectHeightInput.addEventListener('input', () => {
+            const numH = parseFloat(aspectHeightInput.value);
+            if (!isNaN(numH) && numH > 0 && numH <= 16) {
+                currentAspectHeight = numH;
+                aspectHeightSlider.value = currentAspectHeight;
+                aspectHeightSliderDisplay.textContent = currentAspectHeight % 1 === 0 ? currentAspectHeight : currentAspectHeight.toFixed(2);
+                updatePresetButtonStates();
+            } else {
+                aspectHeightInput.value = currentAspectHeight;
+            }
+        });
+
+        document.querySelectorAll('input[name="cropCenter"]').forEach(radio => {
+            radio.addEventListener('change', (event) => currentCropCenterType = event.target.value);
+        });
+
+        debugModeCheckbox.addEventListener('change', (event) => {
+            isDebugMode = event.target.checked;
+            processedImagesTitle.textContent = isDebugMode ? "🐛 デバッグ表示一覧" : "✨ 加工後画像一覧";
+        });
+
+        normalizeCheckbox.addEventListener('change', (event) => {
+            isNormalizeEnabled = event.target.checked;
+        });
+        
+        function handleFileSelect(files) {
+            currentFiles = Array.from(files);
+            processedImageCounter = 0; // Reset counter for new batch
+            processedImagesGrid.innerHTML = ''; 
+            croppedImagesData = [];
+            downloadAllButton.classList.add('hidden');
+            noProcessedImagesMessage.classList.add('hidden');
+            
+            if (currentFiles.length > 0) {
+                selectImageButton.textContent = '画像を再選択';
+                statusMessage.innerHTML = `✅ ${currentFiles.length} 件の画像が選択されました。自動処理を開始します...`;
+                showResultsSection(); // Show results section when files are selected
+                triggerProcessing(); // Auto-process
+            } else {
+                selectImageButton.textContent = '画像を選択';
+                statusMessage.innerHTML = '画像ファイルを選択してください';
+                showIntroSection(); // Show intro section when no files
+                noProcessedImagesMessage.classList.remove('hidden'); 
+            }
+        }
+
+        imageUpload.addEventListener('change', (event) => {
+            handleFileSelect(event.target.files);
+        });
+
+        async function initializeMediaPipe() {
+            statusMessage.innerHTML = '<span class="loading"></span>顔検出モデルを初期化中...';
+            processButton.disabled = true;
+            try {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm"
+                );
+                faceDetector = await FaceDetector.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
+                        delegate: "GPU"
+                    },
+                    runningMode: "IMAGE",
+                    minDetectionConfidence: 0.5
+                });
+                statusMessage.innerHTML = '✅ 初期化完了';
+                processButton.disabled = false;
+            } catch (error) {
+                console.error("MediaPipe初期化エラー:", error);
+                statusMessage.innerHTML = `❌ 初期化エラー: ${error.message}`;
+            }
+        }
+
+        async function triggerProcessing() {
+            if (!faceDetector) { 
+                statusMessage.innerHTML = '⚠️ 顔検出機能が初期化されていません';
+                await initializeMediaPipe(); 
+                if (!faceDetector) {
+                     statusMessage.innerHTML = '❌ 初期化に失敗しました';
+                     return;
+                }
+            }
+            if (currentFiles.length === 0) { 
+                statusMessage.innerHTML = '⚠️ 処理する画像を選択してください';
+                return; 
+            }
+
+            statusMessage.innerHTML = '<span class="loading"></span>画像を処理中...';
+            processButtonText.innerHTML = '<span class="loading"></span>処理中...';
+            processButton.disabled = true;
+            downloadAllButton.disabled = true;
+            downloadAllButton.classList.add('hidden');
+            processedImagesGrid.innerHTML = ''; 
+            croppedImagesData = [];
+            noProcessedImagesMessage.classList.add('hidden');
+            processedImageCounter = 0; // Reset counter before processing batch
+            brightnessNormalizer.clear(); // Clear previous normalization data
+            normalizedImagesMap.clear();
+            
+            processedImagesTitle.textContent = isDebugMode ? "🐛 デバッグ表示一覧" : "✨ 加工後画像一覧";
+
+            // First pass: process all images and collect data for normalization
+            const processedResults = [];
+            for (const file of currentFiles) { 
+                const currentFileIndex = currentFiles.indexOf(file) + 1;
+                statusMessage.innerHTML = `<span class="loading"></span>処理中: ${file.name} (${currentFileIndex}/${currentFiles.length})`;
+                const aspectRatioNumber = currentAspectWidth / currentAspectHeight;
+                try {
+                    const result = await processSingleImage(file, aspectRatioNumber, currentAspectWidth, currentAspectHeight, currentFaceHeightRatio, currentCropCenterType, isDebugMode, true);
+                    if (result) {
+                        processedResults.push(result);
+                    }
+                } catch (err) {
+                    console.error(`ファイル "${file.name}" の処理中にエラー: `, err);
+                    const errorItemDiv = document.createElement('div'); 
+                    errorItemDiv.className = 'thumbnail-item';
+                    const errorMsgP = document.createElement('p');
+                    errorMsgP.style.color = '#ef4444';
+                    errorMsgP.style.padding = '20px';
+                    errorMsgP.style.textAlign = 'center';
+                    errorMsgP.textContent = `エラー: ${file.name}`;
+                    errorItemDiv.appendChild(errorMsgP);
+                    processedImagesGrid.appendChild(errorItemDiv);
+                }
+            }
+
+            // Apply normalization if enabled
+            if (isNormalizeEnabled && processedResults.length > 0) {
+                statusMessage.innerHTML = '<span class="loading"></span>明るさと彩度を正規化中...';
+                try {
+                    // Add all cropped images to normalizer
+                    for (const result of processedResults) {
+                        if (result.croppedImageData) {
+                            brightnessNormalizer.addImage(result.croppedImageData);
+                        }
+                    }
+                    
+                    // Normalize all images
+                    const normalizationResult = brightnessNormalizer.normalize();
+                    
+                    // Store normalized images
+                    for (let i = 0; i < processedResults.length; i++) {
+                        if (normalizationResult.normalizedImages[i]) {
+                            processedResults[i].normalizedImageData = normalizationResult.normalizedImages[i];
+                        }
+                    }
+                    
+                    statusMessage.innerHTML = `<span class="loading"></span>正規化完了 (目標明度: ${Math.round(normalizationResult.targetBrightness)}, 目標彩度: ${Math.round(normalizationResult.targetSaturation)})`;
+                } catch (err) {
+                    console.error('正規化エラー:', err);
+                    statusMessage.innerHTML = '⚠️ 正規化に失敗しました。元の画像を使用します。';
+                }
+            }
+
+            // Display all processed images
+            processedImagesGrid.innerHTML = '';
+            croppedImagesData = [];
+            
+            for (const result of processedResults) {
+                if (result) {
+                    displayProcessedImage(result, isDebugMode, isNormalizeEnabled);
+                }
+            }
+            
+            statusMessage.innerHTML = `✅ 処理完了: ${croppedImagesData.length}件の画像を加工しました`;
+            processButton.disabled = false;
+            processButtonText.innerHTML = '🚀 設定を適用して再処理';
+
+            if (croppedImagesData.length > 0 && !isDebugMode) {
+                downloadAllButton.classList.remove('hidden');
+                downloadAllButton.disabled = false;
+            }
+            if(processedImagesGrid.children.length === 0 && currentFiles.length > 0) { 
+                 noProcessedImagesMessage.textContent = isDebugMode ? '画像がありません' : '加工できる顔が見つかりませんでした';
+                 noProcessedImagesMessage.classList.remove('hidden');
+            }
+            applyImageSizeToGrid(); 
+            applyDisplayModeToGrid(); 
+        }
+        
+        processButton.addEventListener('click', triggerProcessing);
+
+
+        downloadAllButton.addEventListener('click', async () => {
+            if (croppedImagesData.length === 0) {
+                statusMessage.innerHTML = '⚠️ ダウンロードする画像がありません';
+                return;
+            }
+            statusMessage.innerHTML = '<span class="loading"></span>ZIPファイルを準備中...';
+            downloadAllButton.disabled = true;
+            const zip = new JSZip();
+            for (const imgData of croppedImagesData) {
+                const base64Data = imgData.dataURL.substring(imgData.dataURL.indexOf(',') + 1);
+                zip.file(imgData.filename, base64Data, { base64: true });
+            }
+            try {
+                const content = await zip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = "cropped_images.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                statusMessage.innerHTML = '✅ ZIPファイルのダウンロードを開始しました';
+            } catch (error) {
+                console.error("ZIP作成エラー:", error);
+                statusMessage.innerHTML = '❌ ZIPファイルの作成に失敗しました';
+            } finally {
+                 if (croppedImagesData.length > 0 && !isDebugMode) downloadAllButton.disabled = false;
+            }
+        });
+
+        async function processSingleImage(file, aspectRatioNumber, aspectWidthForStyle, aspectHeightForStyle, faceHeightTargetRatio, cropCenterType, debugMode, returnData = false) {
+            processedImageCounter++; // Increment for each image processed
+            return new Promise((resolve, reject) => {
+                const originalImage = new Image();
+                const reader = new FileReader();
+                reader.onload = (e_reader) => {
+                    originalImage.src = e_reader.target.result;
+                    originalImage.onload = async () => {
+                        try {
+                            const origWidth = originalImage.naturalWidth;
+                            const origHeight = originalImage.naturalHeight;
+
+                            let firstPassInput = originalImage;
+                            let firstPassInputRegionOnOriginal = { x: 0, y: 0, width: origWidth, height: origHeight };
+                            let debugInfo = {
+                                initialDetectionRegion: null,
+                                intermediateCropRegionOnOrig: null,
+                                finalDetections: null,
+                                finalDetectionsRelativeTo: null
+                            };
+                            
+                            const detectionsResult1 = faceDetector.detect(firstPassInput);
+                            const faceData1 = detectionsResult1.detections.length > 0 ? detectionsResult1.detections[0] : null;
+
+                            let finalFaceData = faceData1;
+                            let faceDataRelativeToOriginal = firstPassInputRegionOnOriginal; 
+                            
+                            debugInfo.finalDetections = detectionsResult1;
+                            debugInfo.finalDetectionsRelativeTo = firstPassInputRegionOnOriginal;
+
+                            // 常に二段階処理を実行
+                            if (faceData1) {
+                                const intermediateFaceHeightRatio = 0.3; 
+                                const intermediateCropParams = getCropParameters(
+                                    originalImage, 
+                                    faceData1, 
+                                    intermediateFaceHeightRatio, 
+                                    aspectRatioNumber, 
+                                    cropCenterType,
+                                    firstPassInputRegionOnOriginal 
+                                );
+                                debugInfo.intermediateCropRegionOnOrig = intermediateCropParams;
+
+                                if (intermediateCropParams.finalCropW > 0 && intermediateCropParams.finalCropH > 0) {
+                                    const intermediateCanvas = document.createElement('canvas');
+                                    intermediateCanvas.width = intermediateCropParams.finalCropW;
+                                    intermediateCanvas.height = intermediateCropParams.finalCropH;
+                                    const intermediateCtx = intermediateCanvas.getContext('2d');
+                                    intermediateCtx.drawImage(originalImage, 
+                                        intermediateCropParams.cropSourceX, intermediateCropParams.cropSourceY, 
+                                        intermediateCropParams.finalCropW, intermediateCropParams.finalCropH,
+                                        0, 0, intermediateCanvas.width, intermediateCanvas.height);
+
+                                    const detectionsResult2 = faceDetector.detect(intermediateCanvas);
+                                    const faceData2 = detectionsResult2.detections.length > 0 ? detectionsResult2.detections[0] : null;
+                                    
+                                    if (faceData2) { 
+                                        finalFaceData = faceData2;
+                                        faceDataRelativeToOriginal = { 
+                                            x: intermediateCropParams.cropSourceX, 
+                                            y: intermediateCropParams.cropSourceY, 
+                                            width: intermediateCropParams.finalCropW, 
+                                            height: intermediateCropParams.finalCropH 
+                                        };
+                                        debugInfo.finalDetections = detectionsResult2; 
+                                        debugInfo.finalDetectionsRelativeTo = faceDataRelativeToOriginal;
+                                    }
+                                }
+                            }
+                            
+                            // If returnData is true, collect data instead of displaying
+                            if (returnData) {
+                                if (finalFaceData) {
+                                    const croppedCanvas = document.createElement('canvas');
+                                    cropImageToCanvas(originalImage, finalFaceData, croppedCanvas, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, faceDataRelativeToOriginal);
+                                    
+                                    const ctx = croppedCanvas.getContext('2d');
+                                    const imageData = ctx.getImageData(0, 0, croppedCanvas.width, croppedCanvas.height);
+                                    
+                                    resolve({
+                                        file: file,
+                                        originalImage: originalImage,
+                                        finalFaceData: finalFaceData,
+                                        faceDataRelativeToOriginal: faceDataRelativeToOriginal,
+                                        croppedCanvas: croppedCanvas,
+                                        croppedImageData: imageData,
+                                        debugInfo: debugInfo,
+                                        faceHeightTargetRatio: faceHeightTargetRatio,
+                                        aspectRatioNumber: aspectRatioNumber,
+                                        cropCenterType: cropCenterType
+                                    });
+                                } else {
+                                    resolve(null);
+                                }
+                                return;
+                            }
+                            
+                            const itemDiv = document.createElement('div'); 
+                            itemDiv.className = 'thumbnail-item';
+
+                            if (debugMode) {
+                                const debugCanvas = document.createElement('canvas');
+                                debugCanvas.className = 'debug-canvas'; 
+                                itemDiv.appendChild(debugCanvas);
+                                const infoDiv = document.createElement('div'); 
+                                infoDiv.className = 'thumbnail-info';
+                                const filenameP = document.createElement('p');
+                                filenameP.className = 'filename';
+                                filenameP.textContent = file.name; // Show original name in debug
+                                infoDiv.appendChild(filenameP);
+                                itemDiv.appendChild(infoDiv); 
+                                processedImagesGrid.appendChild(itemDiv);
+                                drawDebugInfo(originalImage, debugCanvas, debugInfo); 
+                            } else { 
+                                if (finalFaceData) {
+                                    const croppedCanvas = document.createElement('canvas');
+                                    cropImageToCanvas(originalImage, finalFaceData, croppedCanvas, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, faceDataRelativeToOriginal); 
+                                    
+                                    const dataURL = croppedCanvas.toDataURL('image/png');
+                                    const finalFilename = `${String(processedImageCounter).padStart(3, '0')}_cropped.png`;
+
+                                    croppedImagesData.push({
+                                        filename: finalFilename,
+                                        dataURL: dataURL
+                                    });
+
+                                    // Add clickable class and click handler
+                                    croppedCanvas.className = 'clickable-image';
+                                    croppedCanvas.addEventListener('click', () => {
+                                        modalImage.src = dataURL;
+                                        imageModal.classList.add('active');
+                                    });
+
+                                    itemDiv.appendChild(croppedCanvas);
+                                    
+                                    const infoDiv = document.createElement('div');
+                                    infoDiv.className = 'thumbnail-info';
+                                    const filenameP = document.createElement('p');
+                                    filenameP.className = 'filename';
+                                    filenameP.textContent = finalFilename;
+                                    
+                                    const downloadButton = document.createElement('button'); 
+                                    downloadButton.className = 'download-icon-btn';
+                                    downloadButton.title = `Download ${finalFilename}`;
+                                    downloadButton.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 16.586l-4.293-4.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0l5-5a1 1 0 00-1.414-1.414L12 16.586zM12 3a1 1 0 00-1 1v10a1 1 0 102 0V4a1 1 0 00-1-1zM5 20a1 1 0 001 1h12a1 1 0 100-2H6a1 1 0 00-1 1z"/></svg>`;
+
+                                    downloadButton.onclick = (e) => {
+                                        e.stopPropagation(); // Prevent card click if any
+                                        const link = document.createElement('a');
+                                        link.href = dataURL;
+                                        link.download = finalFilename;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    };
+                                    infoDiv.appendChild(filenameP);
+                                    infoDiv.appendChild(downloadButton);
+                                    itemDiv.appendChild(infoDiv);
+                                    processedImagesGrid.appendChild(itemDiv);
+                                } else { 
+                                    const noFaceMsg = document.createElement('p'); 
+                                    noFaceMsg.textContent = '顔検出不可';
+                                    noFaceMsg.style.color = '#ef4444';
+                                    noFaceMsg.style.padding = '40px 20px';
+                                    noFaceMsg.style.textAlign = 'center';
+                                    noFaceMsg.style.flexGrow = '1'; 
+                                    noFaceMsg.style.display = 'flex';
+                                    noFaceMsg.style.alignItems = 'center';
+                                    noFaceMsg.style.justifyContent = 'center';
+                                    itemDiv.appendChild(noFaceMsg);
+                                    const infoDiv = document.createElement('div');
+                                    infoDiv.className = 'thumbnail-info';
+                                    const filenameP = document.createElement('p');
+                                    filenameP.className = 'filename';
+                                    filenameP.textContent = file.name; // Original filename if no face
+                                    infoDiv.appendChild(filenameP);
+                                    itemDiv.appendChild(infoDiv);
+                                    processedImagesGrid.appendChild(itemDiv);
+                                }
+                            }
+                            if (processedImagesGrid.children.length > 0) { 
+                                noProcessedImagesMessage.classList.add('hidden');
+                            }
+                            resolve(); 
+                        } catch (error) { 
+                            console.error(`Error in img.onload for ${file.name}:`, error);
+                            reject(error); 
+                        }
+                    };
+                    originalImage.onerror = () => reject(new Error(`Image load error: ${file.name}`));
+                };
+                reader.onerror = () => reject(new Error(`FileReader error: ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function displayProcessedImage(result, debugMode, useNormalized) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'thumbnail-item';
+            
+            if (debugMode) {
+                const debugCanvas = document.createElement('canvas');
+                debugCanvas.className = 'debug-canvas';
+                itemDiv.appendChild(debugCanvas);
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'thumbnail-info';
+                const filenameP = document.createElement('p');
+                filenameP.className = 'filename';
+                filenameP.textContent = result.file.name;
+                infoDiv.appendChild(filenameP);
+                itemDiv.appendChild(infoDiv);
+                processedImagesGrid.appendChild(itemDiv);
+                drawDebugInfo(result.originalImage, debugCanvas, result.debugInfo);
+            } else {
+                const canvas = document.createElement('canvas');
+                canvas.width = result.croppedCanvas.width;
+                canvas.height = result.croppedCanvas.height;
+                const ctx = canvas.getContext('2d');
+                
+                // Use normalized image if available and enabled
+                if (useNormalized && result.normalizedImageData) {
+                    ctx.putImageData(result.normalizedImageData, 0, 0);
+                } else {
+                    ctx.drawImage(result.croppedCanvas, 0, 0);
+                }
+                
+                const dataURL = canvas.toDataURL('image/png');
+                const counter = croppedImagesData.length + 1;
+                const finalFilename = `${String(counter).padStart(3, '0')}_cropped.png`;
+                
+                croppedImagesData.push({
+                    filename: finalFilename,
+                    dataURL: dataURL
+                });
+                
+                canvas.className = 'clickable-image';
+                canvas.addEventListener('click', () => {
+                    modalImage.src = dataURL;
+                    imageModal.classList.add('active');
+                });
+                
+                itemDiv.appendChild(canvas);
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'thumbnail-info';
+                const filenameP = document.createElement('p');
+                filenameP.className = 'filename';
+                filenameP.textContent = finalFilename;
+                
+                const downloadButton = document.createElement('button');
+                downloadButton.className = 'download-icon-btn';
+                downloadButton.title = `Download ${finalFilename}`;
+                downloadButton.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 16.586l-4.293-4.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0l5-5a1 1 0 00-1.414-1.414L12 16.586zM12 3a1 1 0 00-1 1v10a1 1 0 102 0V4a1 1 0 00-1-1zM5 20a1 1 0 001 1h12a1 1 0 100-2H6a1 1 0 00-1 1z"/></svg>`;
+                
+                downloadButton.onclick = (e) => {
+                    e.stopPropagation();
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = finalFilename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+                infoDiv.appendChild(filenameP);
+                infoDiv.appendChild(downloadButton);
+                itemDiv.appendChild(infoDiv);
+                processedImagesGrid.appendChild(itemDiv);
+            }
+            
+            if (processedImagesGrid.children.length > 0) {
+                noProcessedImagesMessage.classList.add('hidden');
+            }
+        }
+        
+        function getCropParameters(imageToGetPixelsFrom, faceData, targetFaceHeightRatio, targetAspectRatio, cropCenterType, coordsRelativeToThisRegionOnImage) {
+            const mainImageWidth = imageToGetPixelsFrom.naturalWidth || imageToGetPixelsFrom.width;
+            const mainImageHeight = imageToGetPixelsFrom.naturalHeight || imageToGetPixelsFrom.height;
+            
+            const { boundingBox, keypoints } = faceData; 
+
+            const abs_fb_x = boundingBox.originX + coordsRelativeToThisRegionOnImage.x;
+            const abs_fb_y = boundingBox.originY + coordsRelativeToThisRegionOnImage.y;
+            const fb_w = boundingBox.width;   
+            const fb_h = boundingBox.height;
+
+            if (fb_w <= 0 || fb_h <= 0 || targetAspectRatio <= 0 || targetFaceHeightRatio <=0) {
+                 return { cropSourceX:0, cropSourceY:0, finalCropW:0, finalCropH:0 };
+            }
+
+            let fc_x_abs, fc_y_abs; 
+            if (cropCenterType === 'eyes' && keypoints && keypoints.length >= 2) {
+                const rightEye = keypoints[0]; 
+                const leftEye = keypoints[1];   
+                if (rightEye && typeof rightEye.x === 'number' && typeof rightEye.y === 'number' &&
+                    leftEye && typeof leftEye.x === 'number' && typeof leftEye.y === 'number') {
+                    
+                    const rightEyeX_in_region = rightEye.x * coordsRelativeToThisRegionOnImage.width;
+                    const rightEyeY_in_region = rightEye.y * coordsRelativeToThisRegionOnImage.height;
+                    const leftEyeX_in_region = leftEye.x * coordsRelativeToThisRegionOnImage.width;
+                    const leftEyeY_in_region = leftEye.y * coordsRelativeToThisRegionOnImage.height;
+
+                    const rightEyeX_abs = rightEyeX_in_region + coordsRelativeToThisRegionOnImage.x;
+                    const rightEyeY_abs = rightEyeY_in_region + coordsRelativeToThisRegionOnImage.y;
+                    const leftEyeX_abs = leftEyeX_in_region + coordsRelativeToThisRegionOnImage.x;
+                    const leftEyeY_abs = leftEyeY_in_region + coordsRelativeToThisRegionOnImage.y;
+                    
+                    fc_x_abs = (rightEyeX_abs + leftEyeX_abs) / 2; 
+                    fc_y_abs = (rightEyeY_abs + leftEyeY_abs) / 2;
+                } else { 
+                    fc_x_abs = abs_fb_x + fb_w / 2; 
+                    fc_y_abs = abs_fb_y + fb_h / 2; 
+                }
+            } else { 
+                fc_x_abs = abs_fb_x + fb_w / 2; 
+                fc_y_abs = abs_fb_y + fb_h / 2; 
+            }
+
+            let finalCropH = fb_h / targetFaceHeightRatio; 
+            let finalCropW = finalCropH * targetAspectRatio;
+            
+            if (finalCropW > mainImageWidth) { finalCropW = mainImageWidth; finalCropH = finalCropW / targetAspectRatio; }
+            if (finalCropH > mainImageHeight) { finalCropH = mainImageHeight; finalCropW = finalCropH * targetAspectRatio;
+                if (finalCropW > mainImageWidth) { 
+                    finalCropW = mainImageWidth; 
+                    finalCropH = finalCropW / targetAspectRatio; 
+                }
+            }
+            
+            finalCropW = Math.max(1, Math.floor(finalCropW));
+            finalCropH = Math.max(1, Math.floor(finalCropH));
+            if (finalCropW <= 0 || finalCropH <= 0) return { cropSourceX:0, cropSourceY:0, finalCropW:0, finalCropH:0 };
+
+            let cropSourceX = Math.floor(fc_x_abs - finalCropW / 2);
+            let cropSourceY = Math.floor(fc_y_abs - finalCropH / 2);
+
+            cropSourceX = Math.max(0, Math.min(cropSourceX, mainImageWidth - finalCropW));
+            cropSourceY = Math.max(0, Math.min(cropSourceY, mainImageHeight - finalCropH));
+            
+            const effectiveW = Math.max(1, Math.min(finalCropW, mainImageWidth - cropSourceX));
+            const effectiveH = Math.max(1, Math.min(finalCropH, mainImageHeight - cropSourceY));
+            
+            return { cropSourceX, cropSourceY, finalCropW: effectiveW, finalCropH: effectiveH };
+        }
+
+        function cropImageToCanvas(imageToDrawFrom, faceData, canvasElement, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, coordsRelativeToThisRegionOnImage) {
+            const { cropSourceX, cropSourceY, finalCropW, finalCropH } = getCropParameters(
+                imageToDrawFrom, faceData, faceHeightTargetRatio, aspectRatioNumber, cropCenterType, coordsRelativeToThisRegionOnImage
+            );
+
+            if (finalCropW <= 0 || finalCropH <= 0 ) { 
+                const ctx = canvasElement.getContext('2d');
+                if (ctx) {
+                    const parentWidth = canvasElement.parentElement ? canvasElement.parentElement.clientWidth : 100; 
+                    const thumbWidth = Math.max(30, parentWidth); 
+                    canvasElement.width = thumbWidth;
+                    canvasElement.height = thumbWidth / (aspectRatioNumber || 1); 
+                    ctx.fillStyle = "#f0f0f0"; 
+                    ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                    ctx.fillStyle = "#cc0000"; 
+                    ctx.font = "bold 10px Arial"; 
+                    ctx.textAlign = "center"; 
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("描画不可", canvasElement.width / 2, canvasElement.height / 2);
+                }
+                return; 
+            }
+            
+            const bufferWidth = 600; 
+            canvasElement.width = bufferWidth;
+            canvasElement.height = Math.floor(bufferWidth / aspectRatioNumber); 
+            
+            const ctx = canvasElement.getContext('2d');
+            ctx.imageSmoothingEnabled = true; 
+            ctx.imageSmoothingQuality = "high";
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            ctx.drawImage(imageToDrawFrom, cropSourceX, cropSourceY, finalCropW, finalCropH, 0, 0, canvasElement.width, canvasElement.height);
+        }
+
+        function drawDebugInfo(originalImageElement, debugCanvasElement, debugData) {
+            const { initialDetectionRegion, intermediateCropRegionOnOrig, finalDetections, finalDetectionsRelativeTo } = debugData;
+
+            const imgWidth = originalImageElement.naturalWidth;
+            const imgHeight = originalImageElement.naturalHeight;
+            
+            const parentWidth = debugCanvasElement.parentElement ? debugCanvasElement.parentElement.clientWidth : imgWidth;
+            const displayMaxWidth = Math.max(150, parentWidth); 
+            const scale = Math.min(1, displayMaxWidth / imgWidth); 
+
+            debugCanvasElement.width = imgWidth * scale;
+            debugCanvasElement.height = imgHeight * scale;
+            
+            const ctx = debugCanvasElement.getContext('2d');
+            ctx.clearRect(0, 0, debugCanvasElement.width, debugCanvasElement.height);
+            ctx.drawImage(originalImageElement, 0, 0, debugCanvasElement.width, debugCanvasElement.height); 
+
+            if (initialDetectionRegion && 
+                (initialDetectionRegion.x > 0 || initialDetectionRegion.y > 0 || 
+                 initialDetectionRegion.width < imgWidth || initialDetectionRegion.height < imgHeight)) {
+                ctx.strokeStyle = 'rgba(0, 120, 255, 0.7)'; 
+                ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+                ctx.strokeRect(
+                    initialDetectionRegion.x * scale, 
+                    initialDetectionRegion.y * scale, 
+                    initialDetectionRegion.width * scale, 
+                    initialDetectionRegion.height * scale
+                );
+            }
+
+            if (intermediateCropRegionOnOrig) {
+                ctx.strokeStyle = 'rgba(0, 200, 100, 0.7)'; 
+                ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+                ctx.strokeRect(
+                    intermediateCropRegionOnOrig.cropSourceX * scale, 
+                    intermediateCropRegionOnOrig.cropSourceY * scale, 
+                    intermediateCropRegionOnOrig.finalCropW * scale, 
+                    intermediateCropRegionOnOrig.finalCropH * scale
+                );
+            }
+            
+            const keypointColors = ['#FF3B30', '#34C759', '#007AFF', '#FFCC00', '#AF52DE', '#5856D6']; 
+            const keypointLabels = ['右目', '左目', '鼻', '口', '右耳', '左耳']; 
+
+            if (finalDetections && finalDetections.detections.length > 0 && finalDetectionsRelativeTo) {
+                finalDetections.detections.forEach((detection, faceIndex) => {
+                    const bb = detection.boundingBox; 
+                    
+                    const abs_bb_x_on_orig = bb.originX + finalDetectionsRelativeTo.x;
+                    const abs_bb_y_on_orig = bb.originY + finalDetectionsRelativeTo.y;
+                    
+                    const scaled_x = abs_bb_x_on_orig * scale;
+                    const scaled_y = abs_bb_y_on_orig * scale;
+                    const scaled_w = bb.width * scale;   
+                    const scaled_h = bb.height * scale;  
+
+                    ctx.strokeStyle = `hsl(${faceIndex * 50}, 85%, 50%)`; 
+                    ctx.lineWidth = Math.max(1.5, 2.5 * scale); 
+                    ctx.strokeRect(scaled_x, scaled_y, scaled_w, scaled_h);
+                    
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.font = `bold ${Math.max(9, 12 * scale)}px Arial`; 
+                    const textY = scaled_y - 6 * scale > 0 ? scaled_y - 6 * scale : 12 * scale;
+                    ctx.fillText(`Face ${faceIndex + 1}`, scaled_x, textY);
+
+                    if (detection.keypoints) {
+                        detection.keypoints.forEach((kp, kpIndex) => {
+                            const kx_in_region = kp.x * finalDetectionsRelativeTo.width;
+                            const ky_in_region = kp.y * finalDetectionsRelativeTo.height;
+
+                            const kx_abs_on_orig = kx_in_region + finalDetectionsRelativeTo.x;
+                            const ky_abs_on_orig = ky_in_region + finalDetectionsRelativeTo.y;
+                            
+                            const kx_scaled = kx_abs_on_orig * scale;
+                            const ky_scaled = ky_abs_on_orig * scale;
+
+                            ctx.beginPath();
+                            ctx.fillStyle = keypointColors[kpIndex % keypointColors.length];
+                            ctx.arc(kx_scaled, ky_scaled, Math.max(2, 4 * scale), 0, 2 * Math.PI); 
+                            ctx.fill();
+                            if (keypointLabels[kpIndex]) { 
+                               ctx.fillStyle = '#000'; 
+                               ctx.font = `${Math.max(8, 10 * scale)}px Arial`;
+                               ctx.fillText(keypointLabels[kpIndex], kx_scaled + 6 * scale, ky_scaled - 6 * scale);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Initialize
+        initializeMediaPipe();
+        statusMessage.innerHTML = '画像ファイルを選択してください';
+        
+        // Show intro section initially
+        showIntroSection();
+    </script>
+</body>
+</html>
+

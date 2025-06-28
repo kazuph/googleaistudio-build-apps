@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌈 たのしくまなぼう！ 🌈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes characterAppear {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(10deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes buttonPress {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+        
+        .animate-character {
+            animation: characterAppear 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .animate-button-press {
+            animation: buttonPress 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <div id="app"></div>
+
+    <script>
+        let currentScreen = 'menu';
+        let currentCharacter = '';
+        let timeElapsed = 0;
+        let isTimerRunning = false;
+        let gameType = '';
+        let characterIndex = 0;
+        let rankings = {};
+        let animateCharacter = false;
+        let animateButton = false;
+        let timerInterval = null;
+        
+        // 文字のデータ
+        const hiragana = ['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ',
+            'さ', 'し', 'す', 'せ', 'そ', 'た', 'ち', 'つ', 'て', 'と',
+            'な', 'に', 'ぬ', 'ね', 'の', 'は', 'ひ', 'ふ', 'へ', 'ほ',
+            'ま', 'み', 'む', 'め', 'も', 'や', 'ゆ', 'よ',
+            'ら', 'り', 'る', 'れ', 'ろ', 'わ', 'を', 'ん'];
+        
+        const katakana = ['ア', 'イ', 'ウ', 'エ', 'オ', 'カ', 'キ', 'ク', 'ケ', 'コ',
+            'サ', 'シ', 'ス', 'セ', 'ソ', 'タ', 'チ', 'ツ', 'テ', 'ト',
+            'ナ', 'ニ', 'ヌ', 'ネ', 'ノ', 'ハ', 'ヒ', 'フ', 'ヘ', 'ホ',
+            'マ', 'ミ', 'ム', 'メ', 'モ', 'ヤ', 'ユ', 'ヨ',
+            'ラ', 'リ', 'ル', 'レ', 'ロ', 'ワ', 'ヲ', 'ン'];
+        
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        
+        const simpleWords = ['いぬ', 'ねこ', 'とり', 'さかな', 'くるま', 'でんしゃ', 'ひこうき'];
+
+        // 数独関連
+        let sudokuGrid = Array(16).fill(null);
+        let initialGrid = [];
+        let selectedCell = null;
+        
+        // localStorage からランキングを読み込む
+        function loadRankings() {
+            const savedRankings = localStorage.getItem('kidsLearningRankings');
+            if (savedRankings) {
+                rankings = JSON.parse(savedRankings);
+            }
+        }
+
+        // タイマー機能
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeElapsed += 1;
+                render();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function startGame(type) {
+            gameType = type;
+            currentScreen = 'game';
+            timeElapsed = 0;
+            isTimerRunning = true;
+            characterIndex = 0;
+            startTimer();
+            
+            if (type === 'hiragana') {
+                const shuffled = shuffleArray(hiragana);
+                currentCharacter = shuffled[0];
+            } else if (type === 'katakana') {
+                const shuffled = shuffleArray(katakana);
+                currentCharacter = shuffled[0];
+            } else if (type === 'alphabet') {
+                const shuffled = shuffleArray(alphabet);
+                currentCharacter = shuffled[0];
+            } else if (type === 'words') {
+                const shuffled = shuffleArray(simpleWords);
+                currentCharacter = shuffled[0];
+            } else if (type === 'mathgame') {
+                startMathGame();
+                return;
+            }
+            
+            // キャラクターアニメーション
+            animateCharacter = false;
+            setTimeout(() => {
+                animateCharacter = true;
+                render();
+            }, 50);
+            
+            render();
+        }
+
+        function startMathGame() {
+            currentScreen = 'mathgame';
+            isTimerRunning = true;
+            startTimer();
+            generateSudoku();
+            render();
+        }
+
+        function nextCharacter() {
+            const nextIndex = characterIndex + 1;
+            let characterList;
+            
+            if (gameType === 'hiragana') characterList = shuffleArray(hiragana);
+            else if (gameType === 'katakana') characterList = shuffleArray(katakana);
+            else if (gameType === 'alphabet') characterList = shuffleArray(alphabet);
+            else if (gameType === 'words') characterList = shuffleArray(simpleWords);
+            
+            if (characterList && nextIndex < characterList.length) {
+                characterIndex = nextIndex;
+                currentCharacter = characterList[nextIndex];
+                
+                // ボタンアニメーション
+                animateButton = true;
+                setTimeout(() => {
+                    animateButton = false;
+                    render();
+                }, 300);
+                
+                // キャラクターアニメーション
+                animateCharacter = false;
+                setTimeout(() => {
+                    animateCharacter = true;
+                    render();
+                }, 50);
+            } else {
+                finishGame();
+            }
+            render();
+        }
+
+        function finishGame() {
+            isTimerRunning = false;
+            stopTimer();
+            
+            // ランキングに保存
+            if (!rankings[gameType]) rankings[gameType] = [];
+            rankings[gameType].push({
+                time: timeElapsed,
+                date: new Date().toLocaleDateString()
+            });
+            rankings[gameType].sort((a, b) => a.time - b.time);
+            rankings[gameType] = rankings[gameType].slice(0, 10); // トップ10のみ保存
+            
+            localStorage.setItem('kidsLearningRankings', JSON.stringify(rankings));
+            
+            currentScreen = 'result';
+            render();
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return mins + ':' + secs.toString().padStart(2, '0');
+        }
+
+        // 数独関連の関数
+        function generateSudoku() {
+            const puzzles = [
+                {
+                    initial: [
+                        2, null, 1, null,
+                        3, 1, null, 4,
+                        4, null, 3, 1,
+                        null, 3, 4, 2
+                    ],
+                    solution: [
+                        2, 4, 1, 3,
+                        3, 1, 2, 4,
+                        4, 2, 3, 1,
+                        1, 3, 4, 2
+                    ]
+                },
+                {
+                    initial: [
+                        null, null, 3, 1,
+                        1, null, 4, 2,
+                        2, null, 1, 3,
+                        3, 1, 2, 4
+                    ],
+                    solution: [
+                        4, 2, 3, 1,
+                        1, 3, 4, 2,
+                        2, 4, 1, 3,
+                        3, 1, 2, 4
+                    ]
+                },
+                {
+                    initial: [
+                        1, null, null, 3,
+                        null, 3, 1, null,
+                        3, null, 4, null,
+                        null, 1, null, 2
+                    ],
+                    solution: [
+                        1, 2, 4, 3,
+                        4, 3, 1, 2,
+                        3, 2, 4, 1,
+                        4, 1, 3, 2
+                    ]
+                }
+            ];
+            
+            const randomPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+            sudokuGrid = [...randomPuzzle.initial];
+            initialGrid = [...randomPuzzle.initial];
+            selectedCell = null;
+        }
+
+        function handleCellClick(index) {
+            if (initialGrid[index] !== null) return;
+            selectedCell = index;
+            render();
+        }
+
+        function handleNumberInput(number) {
+            if (selectedCell === null) return;
+            
+            sudokuGrid[selectedCell] = number;
+            
+            if (!sudokuGrid.includes(null) && checkSudokuValid(sudokuGrid)) {
+                finishGame();
+            }
+            render();
+        }
+
+        function checkSudokuValid(grid) {
+            // 行のチェック
+            for (let row = 0; row < 4; row++) {
+                const rowValues = [];
+                for (let col = 0; col < 4; col++) {
+                    rowValues.push(grid[row * 4 + col]);
+                }
+                if (new Set(rowValues).size !== 4 || rowValues.includes(null)) return false;
+            }
+            
+            // 列のチェック
+            for (let col = 0; col < 4; col++) {
+                const colValues = [];
+                for (let row = 0; row < 4; row++) {
+                    colValues.push(grid[row * 4 + col]);
+                }
+                if (new Set(colValues).size !== 4 || colValues.includes(null)) return false;
+            }
+            
+            // 2×2ブロックのチェック
+            const blocks = [
+                [0, 1, 4, 5], [2, 3, 6, 7],
+                [8, 9, 12, 13], [10, 11, 14, 15]
+            ];
+            
+            for (const block of blocks) {
+                const blockValues = block.map(i => grid[i]);
+                if (new Set(blockValues).size !== 4 || blockValues.includes(null)) return false;
+            }
+            
+            return true;
+        }
+
+        function getBlockBorder(index) {
+            const row = Math.floor(index / 4);
+            const col = index % 4;
+            let borders = '';
+            
+            if (row % 2 === 0) borders += ' border-t-4';
+            if (row === 1) borders += ' border-t-2';
+            if (row === 3) borders += ' border-b-4';
+            
+            if (col % 2 === 0) borders += ' border-l-4';
+            if (col === 1) borders += ' border-l-2';
+            if (col === 3) borders += ' border-r-4';
+            
+            return borders;
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (currentScreen === 'menu') {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400 p-8">
+                        <div class="max-w-4xl mx-auto">
+                            <h1 class="text-6xl font-bold text-white text-center mb-12 animate-bounce">
+                                🌈 たのしくまなぼう！ 🌈
+                            </h1>
+                            
+                            <div class="grid grid-cols-2 gap-6">
+                                <button onclick="startGame('hiragana')" class="bg-yellow-400 hover:bg-yellow-300 transform hover:scale-105 transition-all duration-300 p-8 rounded-3xl shadow-lg">
+                                    <span class="text-4xl block mb-2">あいうえお</span>
+                                    <span class="text-2xl">ひらがな</span>
+                                </button>
+                                
+                                <button onclick="startGame('katakana')" class="bg-green-400 hover:bg-green-300 transform hover:scale-105 transition-all duration-300 p-8 rounded-3xl shadow-lg">
+                                    <span class="text-4xl block mb-2">アイウエオ</span>
+                                    <span class="text-2xl">カタカナ</span>
+                                </button>
+                                
+                                <button onclick="startGame('alphabet')" class="bg-blue-400 hover:bg-blue-300 transform hover:scale-105 transition-all duration-300 p-8 rounded-3xl shadow-lg">
+                                    <span class="text-4xl block mb-2">ABC</span>
+                                    <span class="text-2xl">アルファベット</span>
+                                </button>
+                                
+                                <button onclick="startGame('words')" class="bg-purple-400 hover:bg-purple-300 transform hover:scale-105 transition-all duration-300 p-8 rounded-3xl shadow-lg">
+                                    <span class="text-4xl block mb-2">📖</span>
+                                    <span class="text-2xl">ことばよみ</span>
+                                </button>
+                                
+                                <button onclick="startGame('mathgame')" class="bg-red-400 hover:bg-red-300 transform hover:scale-105 transition-all duration-300 p-8 rounded-3xl shadow-lg col-span-2">
+                                    <span class="text-4xl block mb-2">🔢</span>
+                                    <span class="text-2xl">すうじゲーム</span>
+                                </button>
+                            </div>
+                            
+                            <div class="mt-8 text-center">
+                                <button onclick="currentScreen='rankings'; render();" class="bg-white hover:bg-gray-100 px-6 py-3 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300">
+                                    🏆 ランキングをみる
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentScreen === 'game') {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-yellow-200 via-pink-200 to-blue-200 p-8">
+                        <div class="max-w-2xl mx-auto text-center">
+                            <div class="bg-white rounded-3xl shadow-2xl p-12 mb-8">
+                                <div class="text-2xl mb-6 text-gray-600">
+                                    ⏱️ じかん: ${formatTime(timeElapsed)}
+                                </div>
+                                
+                                <div class="text-9xl font-bold mb-8 text-gray-800 ${animateCharacter ? 'animate-character' : ''}" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.1)">
+                                    ${currentCharacter}
+                                </div>
+                                
+                                <button onclick="nextCharacter()" class="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white text-3xl px-12 py-6 rounded-full shadow-xl transform hover:scale-105 transition-all duration-300 ${animateButton ? 'animate-button-press' : ''}">
+                                    つぎへ →
+                                </button>
+                            </div>
+                            
+                            <button onclick="stopTimer(); currentScreen='menu'; render();" class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-3 rounded-full">
+                                もどる
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (currentScreen === 'mathgame') {
+                const sudokuCells = sudokuGrid.map((value, index) => {
+                    const isInitial = initialGrid[index] !== null;
+                    const isSelected = selectedCell === index;
+                    return `
+                        <div onclick="${isInitial ? '' : 'handleCellClick(' + index + ')'}" 
+                             class="w-20 h-20 flex items-center justify-center text-3xl font-bold ${isInitial ? 'cursor-default' : 'cursor-pointer'} transition-all duration-200
+                             ${isInitial ? 'bg-gray-200 text-gray-800' : 'bg-white hover:bg-yellow-100'}
+                             ${isSelected ? 'bg-yellow-300' : ''}
+                             ${getBlockBorder(index)} border-blue-600">
+                            ${value || ''}
+                        </div>
+                    `;
+                }).join('');
+
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-purple-300 via-pink-300 to-yellow-300 p-8">
+                        <div class="max-w-4xl mx-auto">
+                            <div class="bg-white rounded-3xl shadow-2xl p-8 mb-6">
+                                <div class="text-2xl mb-2 text-center text-gray-600">
+                                    ⏱️ じかん: ${formatTime(timeElapsed)}
+                                </div>
+                                
+                                <h2 class="text-3xl font-bold text-center mb-6 text-purple-600">
+                                    すうじパズル 🧩
+                                </h2>
+                                
+                                <div class="mb-4 text-center text-lg text-gray-700">
+                                    たて・よこ・ブロックに 1〜4 をいれよう！
+                                </div>
+                                
+                                <div class="flex justify-center mb-8">
+                                    <div class="grid grid-cols-4 gap-0 border-4 border-blue-600 rounded-lg overflow-hidden">
+                                        ${sudokuCells}
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-center gap-4 mb-6">
+                                    ${[1,2,3,4].map(num => `
+                                        <button onclick="handleNumberInput(${num})" class="w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white text-2xl font-bold rounded-full shadow-lg transform hover:scale-110 transition-all duration-300">
+                                            ${num}
+                                        </button>
+                                    `).join('')}
+                                    <button onclick="handleNumberInput(null)" class="w-16 h-16 bg-gray-400 hover:bg-gray-500 text-white text-2xl font-bold rounded-full shadow-lg transform hover:scale-110 transition-all duration-300">
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <button onclick="generateSudoku(); render();" class="block mx-auto bg-green-400 hover:bg-green-500 text-white px-6 py-3 rounded-full transform hover:scale-105 transition-all duration-300">
+                                    あたらしいもんだい
+                                </button>
+                            </div>
+                            
+                            <button onclick="stopTimer(); currentScreen='menu'; render();" class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-3 rounded-full">
+                                もどる
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (currentScreen === 'result') {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-yellow-300 via-orange-300 to-red-300 p-8">
+                        <div class="max-w-2xl mx-auto text-center">
+                            <h1 class="text-6xl font-bold text-white mb-8 animate-pulse">
+                                🎉 よくできました！ 🎉
+                            </h1>
+                            
+                            <div class="bg-white rounded-3xl shadow-2xl p-8 mb-8 animate-bounce">
+                                <p class="text-4xl mb-4">かかったじかん</p>
+                                <p class="text-6xl font-bold text-orange-500">${formatTime(timeElapsed)}</p>
+                            </div>
+                            
+                            <button onclick="currentScreen='menu'; render();" class="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white text-2xl px-8 py-4 rounded-full shadow-xl transform hover:scale-105 transition-all duration-300">
+                                メニューにもどる
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (currentScreen === 'rankings') {
+                const rankingCards = Object.entries(rankings).map(([gameType, scores]) => {
+                    const gameNames = {
+                        'hiragana': 'ひらがな',
+                        'katakana': 'カタカナ',
+                        'alphabet': 'アルファベット',
+                        'words': 'ことばよみ',
+                        'mathgame': 'すうじゲーム'
+                    };
+                    
+                    const scoreList = scores.slice(0, 5).map((score, idx) => {
+                        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
+                        return `
+                            <li class="flex justify-between items-center p-2 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
+                                <span class="font-bold">${medal}</span>
+                                <span>${formatTime(score.time)}</span>
+                                <span class="text-sm text-gray-500">${score.date}</span>
+                            </li>
+                        `;
+                    }).join('');
+                    
+                    return `
+                        <div class="bg-white rounded-2xl shadow-xl p-6">
+                            <h2 class="text-2xl font-bold mb-4 text-center">
+                                ${gameNames[gameType]}
+                            </h2>
+                            <ol class="space-y-2">
+                                ${scoreList}
+                            </ol>
+                        </div>
+                    `;
+                }).join('');
+
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-blue-300 via-purple-300 to-pink-300 p-8">
+                        <div class="max-w-4xl mx-auto">
+                            <h1 class="text-5xl font-bold text-white text-center mb-8">
+                                🏆 ランキング 🏆
+                            </h1>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                ${rankingCards}
+                            </div>
+                            
+                            <div class="text-center mt-8">
+                                <button onclick="currentScreen='menu'; render();" class="bg-white hover:bg-gray-100 px-6 py-3 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300">
+                                    もどる
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 初期化
+        loadRankings();
+        render();
+    </script>
+</body>
+</html>
