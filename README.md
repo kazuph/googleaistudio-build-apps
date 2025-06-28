@@ -1,6 +1,38 @@
 # Vibe Coding Apps
 
-このリポジトリには、AIを活用して構築された様々なアプリケーションが含まれています。
+このリポジトリは、AIを活用して構築された様々なアプリケーションを収録したモノレポです。各アプリケーションは独立して開発・デプロイされており、GitHub Pagesでライブデモが公開されています。
+
+## 🌐 ライブデモサイト
+
+**GitHub Pages**: https://kazuph.github.io/vibe-coding-apps/
+
+## 📁 モノレポ構造
+
+このリポジトリは以下の構造で構成されています：
+
+```
+vibe-coding-apps/
+├── docs/                    # GitHub Pages公開用ディレクトリ
+│   ├── index.html          # メインランディングページ
+│   ├── face-crop/          # Face Cropperのライブデモ
+│   ├── fitness-bike/       # Fitness Bikeのライブデモ
+│   └── kids-learning/      # Kids Learningのライブデモ
+├── face-crop-app/          # AI Face Cropperソースコード
+├── fitness-bike-webbluetooth/ # Fitness Bike Reactアプリソースコード
+├── fitness-bike-node-ble-tui/ # Fitness Bike Node.jsアプリソースコード
+├── techbook-preview-extension/ # Chrome Extension
+└── techbook-swipe-extension/   # Chrome Extension
+```
+
+## 🔄 プロジェクト対応表
+
+| ソースコード | ライブデモ | 説明 |
+|-------------|-----------|------|
+| `face-crop-app/` | `docs/face-crop/` | MediaPipe Face Detector |
+| `fitness-bike-webbluetooth/` | `docs/fitness-bike/` | Web Bluetooth API版 |
+| `fitness-bike-node-ble-tui/` | なし | Node.js TUI版（Bluetooth制御） |
+| `techbook-*-extension/` | なし | Chrome Extensions |
+| なし | `docs/kids-learning/` | 学習アプリ（スタンドアロン） |
 
 ## プロジェクト一覧
 
@@ -46,9 +78,16 @@ MediaPipe Face Detectorを使用した高精度な顔検出・画像切り抜き
   - ⌨️ キーボード操作対応（左右矢印キー、ESCキー）
   - 🎯 ドラッグ＆スワイプ、ボタンクリック、キーボード操作に対応
 
-## デプロイメント
+## 🚀 デプロイメント
 
-各アプリケーションはCloudflare WorkersまたはCloudflare Pagesにデプロイされています。
+### GitHub Pages
+- **ライブデモ**: `docs/`ディレクトリから自動デプロイ
+- **URL**: https://kazuph.github.io/vibe-coding-apps/
+- **更新方法**: `docs/`内のファイルを更新してプッシュ
+
+### Cloudflare Workers/Pages
+- **本格運用版**: 各アプリケーションは個別にCloudflare WorkersまたはPagesにデプロイ
+- **デプロイコマンド**: 各プロジェクトディレクトリ内で`npm run deploy`または`pnpm run deploy`
 
 ## ライセンス
 
