@@ -39,6 +39,8 @@ vibe-coding-apps/
 ### 🎯 AI Face Cropper
 MediaPipe Face Detectorを使用した高精度な顔検出・画像切り抜きアプリケーション
 
+![AI Face Cropper Screenshot](./docs/assets/face-crop-app-screenshot.png)
+
 - **ライブデモ**: https://face-cropper.kazuph.workers.dev/
 - **ソースコード**: [face-crop-app/](./face-crop-app/)
 - **技術スタック**: MediaPipe, JavaScript, Cloudflare Workers
@@ -47,6 +49,21 @@ MediaPipe Face Detectorを使用した高精度な顔検出・画像切り抜き
   - カスタマイズ可能な切り抜きサイズ
   - 明るさ・彩度の正規化
   - バッチ処理対応
+
+### 🚴‍♂️ Fitness Bike Controller
+Web Bluetooth APIを使用したフィットネスバイク制御アプリケーション
+
+![Fitness Bike Controller Screenshot](./docs/assets/fitness-bike-app-screenshot.png)
+
+- **ライブデモ**: https://kazuph.github.io/vibe-coding-apps/fitness-bike/
+- **ソースコード**: [fitness-bike-webbluetooth/](./fitness-bike-webbluetooth/)
+- **技術スタック**: React, Web Bluetooth API, TypeScript, Vite
+- **機能**: 
+  - BLE経由でのフィットネスバイク接続・制御
+  - リアルタイム運動データ表示（速度、パワー、カロリー）
+  - 負荷レベル調整（80段階）
+  - ワークアウト統計とグラフ表示
+  - 運動記録の保存・管理
 
 ### 📚 技術書典プレビュー Chrome Extension
 技術書典の本一覧ページで、本のリンクにマウスオーバーすると詳細情報をプレビュー表示するChrome Extension
