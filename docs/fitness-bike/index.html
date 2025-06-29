@@ -793,6 +793,7 @@
                 // カロリー計算用
                 this.sessionCalories = 0;
                 this.lastCalorieUpdateTime = Date.now();
+                this.lastPower = null; // パワーベースカロリー計算用
                 
                 // 表示モード（速度⇔ケイデンス切り替え用）
                 this.speedDisplayMode = 'speed'; // 'speed' or 'cadence'
@@ -918,35 +919,65 @@
                 const now = Date.now();
                 const timeDiffSeconds = (now - this.lastCalorieUpdateTime) / 1000;
                 
-                // 5秒未満または1分以上は異常値としてスキップ
-                if (timeDiffSeconds < 5 || timeDiffSeconds > 60) {
+                // 時間差が0の場合のみスキップ（以前は5秒未満をスキップしていたが科学的に不正確）
+                if (timeDiffSeconds <= 0) {
+                    return;
+                }
+                
+                // 60秒以上空いた場合は計測リセット（異常値防止）
+                if (timeDiffSeconds > 60) {
                     this.lastCalorieUpdateTime = now;
                     return;
                 }
                 
-                const timeDiffHours = timeDiffSeconds / 3600; // 秒を時間に変換
+                let caloriesBurned = 0;
                 
-                // METsを計算（簡易式）
-                let mets = 1.0; // 基礎代謝
-                if (speed > 0) {
-                    if (speed < 16) mets = 4.0;      // 軽い運動
-                    else if (speed < 20) mets = 6.8;  // 中程度
-                    else if (speed < 24) mets = 8.5;  // 強い運動
-                    else mets = 12.0;                 // 非常に強い運動
-                    
-                    // ケイデンスによる調整
-                    if (cadence > 90) mets *= 1.2;
-                    else if (cadence > 70) mets *= 1.1;
+                // パワーデータが利用可能な場合は科学的なパワーベース計算を使用
+                if (this.lastPower != null && isFinite(this.lastPower) && this.lastPower > 0) {
+                    caloriesBurned = this.calculateCaloriesFromPower(this.lastPower, timeDiffSeconds);
+                    this.debugLog('calorieCalculation', `Power-based: ${this.lastPower}W × ${timeDiffSeconds.toFixed(1)}s = ${caloriesBurned.toFixed(3)}kcal`);
+                } else {
+                    // フォールバック: 改良された速度ベースMET計算
+                    caloriesBurned = this.calculateCaloriesFromSpeed(speed, timeDiffSeconds);
+                    this.debugLog('calorieCalculation', `Speed-based: ${speed.toFixed(1)}km/h × ${timeDiffSeconds.toFixed(1)}s = ${caloriesBurned.toFixed(3)}kcal`);
                 }
                 
-                // カロリー計算: METs × 体重(kg) × 時間(h)
-                const caloriesBurned = mets * this.userSettings.weight * timeDiffHours;
                 this.sessionCalories += caloriesBurned;
                 
                 const caloriesElem = document.getElementById('calories');
                 if (caloriesElem) caloriesElem.textContent = Math.round(this.sessionCalories);
                 
                 this.lastCalorieUpdateTime = now;
+            }
+            
+            // パワーベースカロリー計算（科学的に正確）
+            calculateCaloriesFromPower(power, timeSeconds) {
+                // 機械効率: 一般的に0.22-0.26、ここでは0.24を使用
+                const MECHANICAL_EFFICIENCY = 0.24;
+                
+                // 消費エネルギー(J) = パワー(W) × 時間(s) / 効率
+                // カロリー(kcal) = エネルギー(J) / 4186 (J/kcal)
+                // 例: 150W × 60s = 8.96kcal (≈ 538kcal/h)
+                return (power * timeSeconds) / (MECHANICAL_EFFICIENCY * 4186);
+            }
+            
+            // 速度ベースカロリー計算（フォールバック用、Compendium準拠）
+            calculateCaloriesFromSpeed(speed, timeSeconds) {
+                const timeHours = timeSeconds / 3600;
+                
+                // Compendium of Physical Activities に基づくMET値
+                let mets = 1.0; // 安静時代謝
+                if (speed > 0) {
+                    if (speed < 16) mets = 4.0;      // <10 mph (16 km/h)
+                    else if (speed < 19.3) mets = 6.8; // 10-11.9 mph
+                    else if (speed < 22.5) mets = 8.0; // 12-13.9 mph  
+                    else if (speed < 25.7) mets = 10.0; // 14-15.9 mph
+                    else if (speed < 32.2) mets = 12.0; // 16-19.9 mph
+                    else mets = 14.0;                   // ≥20 mph
+                }
+                
+                // カロリー計算: METs × 体重(kg) × 時間(h)
+                return mets * this.userSettings.weight * timeHours;
             }
             
             saveStoredData() {
@@ -1225,6 +1256,9 @@
             updatePowerDisplay(power) {
                 const maxPower = 500;
                 const percentage = Math.min(power / maxPower, 1);
+                
+                // パワー値を保存（カロリー計算用）
+                this.lastPower = power;
                 
                 // カード表示更新
                 const powerValueElem = document.getElementById('powerValue');
