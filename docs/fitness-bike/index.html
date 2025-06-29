@@ -1030,16 +1030,22 @@
                     case 'speed':
                         if (value > this.sessionMaxSpeed) {
                             this.sessionMaxSpeed = value;
-                            const elem = document.getElementById('maxSpeed');
-                            if (elem) elem.textContent = value.toFixed(1);
+                            // 速度表示モードの時のみMAX値を更新
+                            if (this.speedDisplayMode === 'speed') {
+                                const elem = document.getElementById('speedCadenceMax');
+                                if (elem) elem.textContent = value.toFixed(1);
+                            }
                             updated = true;
                         }
                         break;
                     case 'cadence':
                         if (value > this.sessionMaxCadence) {
                             this.sessionMaxCadence = value;
-                            const elem = document.getElementById('maxCadence');
-                            if (elem) elem.textContent = value.toFixed(0);
+                            // ケイデンス表示モードの時のみMAX値を更新
+                            if (this.speedDisplayMode === 'cadence') {
+                                const elem = document.getElementById('speedCadenceMax');
+                                if (elem) elem.textContent = value.toFixed(0);
+                            }
                             updated = true;
                         }
                         break;
@@ -1270,6 +1276,9 @@
                     powerBarFillElem.style.width = `${percentage * 100}%`;
                     powerBarFillElem.textContent = `${power}W`;
                 }
+                
+                // セッション最大パワーを更新
+                this.updateSessionMax('power', power);
             }
 
             updateDuration() {
