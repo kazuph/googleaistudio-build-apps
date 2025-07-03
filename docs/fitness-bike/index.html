@@ -99,6 +99,13 @@
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .toggle-btn svg {
+            flex-shrink: 0;
         }
         
         .toggle-btn:hover {
@@ -624,7 +631,12 @@
         
         <div id="status" class="status disconnected">
             未接続 - バイクの電源を入れて「接続」ボタンを押してください
-            <button id="connectionToggle" class="toggle-btn" style="margin-left: 15px;">🔗 接続</button>
+            <button id="connectionToggle" class="toggle-btn" style="margin-left: 15px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M7,15A3,3 0 0,1 4,12A3,3 0 0,1 7,9A3,3 0 0,1 10,12A3,3 0 0,1 7,15Z"/>
+                </svg>
+                接続
+            </button>
         </div>
 
         <!-- コンパクト負荷調整 -->
@@ -632,13 +644,15 @@
             <div class="resistance-header">
                 <span>🔧 負荷: <span id="resistanceLevel">1</span></span>
                 <div class="resistance-controls-compact">
-                    <button class="ctrl-btn" onclick="adjustResistance(-5)">−５</button>
-                    <button class="ctrl-btn" onclick="adjustResistance(-1)">−１</button>
-                    <button class="ctrl-btn" onclick="adjustResistance(+1)">＋１</button>
-                    <button class="ctrl-btn" onclick="adjustResistance(+5)">＋５</button>
+                    <button class="ctrl-btn" onclick="adjustResistance(-5)">▼ 5</button>
+                    <button class="ctrl-btn" onclick="adjustResistance(+5)">▲ 5</button>
+                    <button class="preset-btn" onclick="setResistance(10)">10</button>
                     <button class="preset-btn" onclick="setResistance(20)">20</button>
+                    <button class="preset-btn" onclick="setResistance(30)">30</button>
                     <button class="preset-btn" onclick="setResistance(40)">40</button>
+                    <button class="preset-btn" onclick="setResistance(50)">50</button>
                     <button class="preset-btn" onclick="setResistance(60)">60</button>
+                    <button class="preset-btn" onclick="setResistance(70)">70</button>
                     <button class="preset-btn" onclick="setResistance(80)">80</button>
                 </div>
             </div>
@@ -1858,10 +1872,20 @@
                 const btn = document.getElementById('connectionToggle');
                 if (btn) {
                     if (this.isConnected) {
-                        btn.textContent = '❌ 切断';
+                        btn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M17,15A3,3 0 0,1 14,12A3,3 0 0,1 17,9A3,3 0 0,1 20,12A3,3 0 0,1 17,15Z"/>
+                            </svg>
+                            切断
+                        `;
                         btn.classList.add('connected');
                     } else {
-                        btn.textContent = '🔗 接続';
+                        btn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M7,15A3,3 0 0,1 4,12A3,3 0 0,1 7,9A3,3 0 0,1 10,12A3,3 0 0,1 7,15Z"/>
+                            </svg>
+                            接続
+                        `;
                         btn.classList.remove('connected');
                     }
                 }
@@ -2079,10 +2103,20 @@
                 const btn = document.getElementById('connectionToggle');
                 if (btn) {
                     if (this.isConnected) {
-                        btn.textContent = '❌ 切断';
+                        btn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M17,15A3,3 0 0,1 14,12A3,3 0 0,1 17,9A3,3 0 0,1 20,12A3,3 0 0,1 17,15Z"/>
+                            </svg>
+                            切断
+                        `;
                         btn.classList.add('connected');
                     } else {
-                        btn.textContent = '🔗 接続';
+                        btn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M7,15A3,3 0 0,1 4,12A3,3 0 0,1 7,9A3,3 0 0,1 10,12A3,3 0 0,1 7,15Z"/>
+                            </svg>
+                            接続
+                        `;
                         btn.classList.remove('connected');
                     }
                 }
