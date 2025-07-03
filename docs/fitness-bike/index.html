@@ -1673,7 +1673,7 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                max: Math.max(...this.workoutData.speed, 30),
+                                max: this.workoutData.speed.length > 0 ? Math.max(...this.workoutData.speed, 30) : 30,
                                 title: {
                                     display: true,
                                     text: '速度 (km/h)'
@@ -1727,7 +1727,7 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                max: Math.max(...this.workoutData.power, 200),
+                                max: this.workoutData.power.length > 0 ? Math.max(...this.workoutData.power, 200) : 200,
                                 title: {
                                     display: true,
                                     text: 'パワー (W)'
@@ -1781,7 +1781,7 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                max: Math.max(...this.workoutData.distance, 100),
+                                max: this.workoutData.distance.length > 0 ? Math.max(...this.workoutData.distance, 100) : 100,
                                 title: {
                                     display: true,
                                     text: '累積距離 (m)'
@@ -1814,10 +1814,11 @@
                 }
                 
                 // 時間軸のラベルを生成（経過時間）
-                const timeLabels = this.workoutData.time.map((_, index) => {
-                    const totalElapsedSeconds = this.startTime ? (Date.now() - this.startTime) / 1000 : 0;
-                    const timePerPoint = totalElapsedSeconds / this.workoutData.time.length;
-                    const seconds = timePerPoint * index;
+                const timeLabels = this.workoutData.time.map((timestamp, index) => {
+                    if (!this.startTime) {
+                        return `${index}s`;
+                    }
+                    const seconds = (timestamp - this.startTime) / 1000;
                     
                     if (seconds >= 60) {
                         const minutes = Math.floor(seconds / 60);
@@ -1832,7 +1833,7 @@
                 if (this.speedChart) {
                     this.speedChart.data.labels = timeLabels;
                     this.speedChart.data.datasets[0].data = this.workoutData.speed;
-                    this.speedChart.options.scales.y.max = Math.max(...this.workoutData.speed, 30);
+                    this.speedChart.options.scales.y.max = this.workoutData.speed.length > 0 ? Math.max(...this.workoutData.speed, 30) : 30;
                     this.speedChart.update('none');
                 }
                 
@@ -1840,7 +1841,7 @@
                 if (this.powerChart) {
                     this.powerChart.data.labels = timeLabels;
                     this.powerChart.data.datasets[0].data = this.workoutData.power;
-                    this.powerChart.options.scales.y.max = Math.max(...this.workoutData.power, 200);
+                    this.powerChart.options.scales.y.max = this.workoutData.power.length > 0 ? Math.max(...this.workoutData.power, 200) : 200;
                     this.powerChart.update('none');
                 }
                 
@@ -1848,7 +1849,7 @@
                 if (this.distanceChart) {
                     this.distanceChart.data.labels = timeLabels;
                     this.distanceChart.data.datasets[0].data = this.workoutData.distance;
-                    this.distanceChart.options.scales.y.max = Math.max(...this.workoutData.distance, 100);
+                    this.distanceChart.options.scales.y.max = this.workoutData.distance.length > 0 ? Math.max(...this.workoutData.distance, 100) : 100;
                     this.distanceChart.update('none');
                 }
             }
@@ -2575,6 +2576,7 @@
                 
                 if (power >= 0 && power <= 2000) {
                     this.updatePowerDisplay(power);
+                    this.addWorkoutData('power', power);
                 }
                 
                 let debugInfo = `生データ: ${hexString}\n`;
@@ -2690,18 +2692,33 @@
             addWorkoutData(type, value) {
                 if (!this.isMonitoring) return;
                 
+                // 時間データを共通で管理
+                const currentTime = Date.now();
+                const shouldUpdateTime = this.workoutData.time.length === 0 || 
+                    this.workoutData.time.length < Math.max(
+                        this.workoutData.speed.length,
+                        this.workoutData.power.length,
+                        this.workoutData.distance.length
+                    );
+                
+                if (shouldUpdateTime) {
+                    this.workoutData.time.push(currentTime);
+                }
+                
                 this.workoutData[type].push(value);
-                this.workoutData.time.push(Date.now());
                 
                 // データポイント数制限
                 if (this.workoutData[type].length > this.maxDataPoints) {
                     this.workoutData[type].shift();
-                    this.workoutData.time.shift();
+                    // 時間配列も同期して削除
+                    if (this.workoutData.time.length > this.maxDataPoints) {
+                        this.workoutData.time.shift();
+                    }
                 }
                 
-                // グラフ更新（1秒ごと）
+                // グラフ更新（データが来るたびに更新）
                 this.dataPoints++;
-                if (this.dataPoints % 10 === 0) {
+                if (this.dataPoints % 3 === 0) {
                     this.updateCharts();
                 }
             }
